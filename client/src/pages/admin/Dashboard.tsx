@@ -47,8 +47,7 @@ export default function AdminDashboard() {
       color: "text-blue-600",
       bgColor: "bg-blue-50",
       borderColor: "border-blue-100",
-      change: "+12%",
-    },
+      },
     {
       title: "Total Pengguna",
       value: stats?.totalUsers || 0,
@@ -56,7 +55,6 @@ export default function AdminDashboard() {
       color: "text-green-600",
       bgColor: "bg-green-50",
       borderColor: "border-green-100",
-      change: "+18%",
     },
     {
       title: "Total Komentar",
@@ -65,7 +63,6 @@ export default function AdminDashboard() {
       color: "text-yellow-600",
       bgColor: "bg-yellow-50",
       borderColor: "border-yellow-100",
-      change: "+7%",
     },
     {
       title: "Total Suka",
@@ -74,7 +71,6 @@ export default function AdminDashboard() {
       color: "text-red-600",
       bgColor: "bg-red-50",
       borderColor: "border-red-100",
-      change: "+15%",
     },
     {
       title: "Total Bookmark",
@@ -83,7 +79,6 @@ export default function AdminDashboard() {
       color: "text-purple-600",
       bgColor: "bg-purple-50",
       borderColor: "border-purple-100",
-      change: "+9%",
     },
   ];
 
@@ -118,8 +113,8 @@ export default function AdminDashboard() {
                     </p>
                     <div className="flex items-center mt-2">
                       <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
-                      <span className="text-sm text-green-500">{stat.change}</span>
-                      <span className="text-sm text-gray-500 ml-1">bulan ini</span>
+                      <span className="text-sm text-green-500">Aktif</span>
+                      <span className="text-sm text-gray-500 ml-1">sistem berjalan</span>
                     </div>
                   </div>
                   <stat.icon className={`h-8 w-8 ${stat.color} opacity-60`} />
@@ -141,35 +136,35 @@ export default function AdminDashboard() {
             <div className="grid md:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Artikel Terpopuler</CardTitle>
+                  <CardTitle>Ringkasan Sistem</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div>
-                        <p className="font-medium text-gray-900">Program Infrastruktur Digital</p>
-                        <p className="text-sm text-gray-500">245 suka • 89 komentar</p>
+                        <p className="font-medium text-gray-900">Total Artikel</p>
+                        <p className="text-sm text-gray-500">Artikel yang telah diterbitkan</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-medium text-indonesia-red">2 jam lalu</p>
+                        <p className="text-2xl font-bold text-indonesia-red">{stats?.totalArticles || 0}</p>
                       </div>
                     </div>
                     <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div>
-                        <p className="font-medium text-gray-900">Festival Seni Tradisional</p>
-                        <p className="text-sm text-gray-500">198 suka • 67 komentar</p>
+                        <p className="font-medium text-gray-900">Total Pengguna</p>
+                        <p className="text-sm text-gray-500">Pengguna terdaftar</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-medium text-indonesia-red">4 jam lalu</p>
+                        <p className="text-2xl font-bold text-indonesia-red">{stats?.totalUsers || 0}</p>
                       </div>
                     </div>
                     <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div>
-                        <p className="font-medium text-gray-900">Timnas Indonesia Menang</p>
-                        <p className="text-sm text-gray-500">156 suka • 43 komentar</p>
+                        <p className="font-medium text-gray-900">Total Komentar</p>
+                        <p className="text-sm text-gray-500">Komentar dari pengguna</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-medium text-indonesia-red">6 jam lalu</p>
+                        <p className="text-2xl font-bold text-indonesia-red">{stats?.totalComments || 0}</p>
                       </div>
                     </div>
                   </div>
@@ -178,7 +173,7 @@ export default function AdminDashboard() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Aktivitas Terkini</CardTitle>
+                  <CardTitle>Status Sistem</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
@@ -186,36 +181,36 @@ export default function AdminDashboard() {
                       <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
                       <div>
                         <p className="text-sm text-gray-900">
-                          <span className="font-medium">Ahmad Sutanto</span> menerbitkan artikel baru
+                          <span className="font-medium">Sistem</span> berjalan normal
                         </p>
-                        <p className="text-xs text-gray-500">2 jam yang lalu</p>
+                        <p className="text-xs text-gray-500">Semua layanan aktif</p>
                       </div>
                     </div>
                     <div className="flex items-start space-x-3">
                       <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
                       <div>
                         <p className="text-sm text-gray-900">
-                          <span className="font-medium">Sari Wijaya</span> mengomentari artikel
+                          <span className="font-medium">Database</span> terhubung
                         </p>
-                        <p className="text-xs text-gray-500">3 jam yang lalu</p>
+                        <p className="text-xs text-gray-500">Koneksi stabil</p>
                       </div>
                     </div>
                     <div className="flex items-start space-x-3">
-                      <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2"></div>
+                      <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
                       <div>
                         <p className="text-sm text-gray-900">
-                          Komentar baru perlu moderasi
+                          <span className="font-medium">Upload</span> sistem aktif
                         </p>
-                        <p className="text-xs text-gray-500">4 jam yang lalu</p>
+                        <p className="text-xs text-gray-500">File upload berfungsi</p>
                       </div>
                     </div>
                     <div className="flex items-start space-x-3">
-                      <div className="w-2 h-2 bg-purple-500 rounded-full mt-2"></div>
+                      <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
                       <div>
                         <p className="text-sm text-gray-900">
-                          <span className="font-medium">Eko Prasetyo</span> mendaftar sebagai pengguna baru
+                          <span className="font-medium">API</span> endpoint aktif
                         </p>
-                        <p className="text-xs text-gray-500">5 jam yang lalu</p>
+                        <p className="text-xs text-gray-500">Semua layanan API berjalan</p>
                       </div>
                     </div>
                   </div>
@@ -264,29 +259,29 @@ export default function AdminDashboard() {
             <div className="grid md:grid-cols-3 gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Artikel per Kategori</CardTitle>
+                  <CardTitle>Ringkasan Konten</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Nasional</span>
-                      <span className="text-sm font-medium">45</span>
+                      <span className="text-sm text-gray-600">Total Artikel</span>
+                      <span className="text-sm font-medium">{stats?.totalArticles || 0}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Ekonomi</span>
-                      <span className="text-sm font-medium">32</span>
+                      <span className="text-sm text-gray-600">Total Komentar</span>
+                      <span className="text-sm font-medium">{stats?.totalComments || 0}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Olahraga</span>
-                      <span className="text-sm font-medium">28</span>
+                      <span className="text-sm text-gray-600">Total Suka</span>
+                      <span className="text-sm font-medium">{stats?.totalLikes || 0}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Teknologi</span>
-                      <span className="text-sm font-medium">25</span>
+                      <span className="text-sm text-gray-600">Total Bookmark</span>
+                      <span className="text-sm font-medium">{stats?.totalBookmarks || 0}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Budaya</span>
-                      <span className="text-sm font-medium">18</span>
+                      <span className="text-sm text-gray-600">Total Pengguna</span>
+                      <span className="text-sm font-medium">{stats?.totalUsers || 0}</span>
                     </div>
                   </div>
                 </CardContent>
@@ -294,21 +289,21 @@ export default function AdminDashboard() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Status Publikasi</CardTitle>
+                  <CardTitle>Interaksi Pengguna</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Diterbitkan</span>
-                      <span className="text-sm font-medium text-green-600">142</span>
+                      <span className="text-sm text-gray-600">Total Suka</span>
+                      <span className="text-sm font-medium text-red-600">{stats?.totalLikes || 0}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Draft</span>
-                      <span className="text-sm font-medium text-yellow-600">6</span>
+                      <span className="text-sm text-gray-600">Total Bookmark</span>
+                      <span className="text-sm font-medium text-purple-600">{stats?.totalBookmarks || 0}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Menunggu Review</span>
-                      <span className="text-sm font-medium text-blue-600">3</span>
+                      <span className="text-sm text-gray-600">Total Komentar</span>
+                      <span className="text-sm font-medium text-yellow-600">{stats?.totalComments || 0}</span>
                     </div>
                   </div>
                 </CardContent>
@@ -316,21 +311,21 @@ export default function AdminDashboard() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Moderasi Komentar</CardTitle>
+                  <CardTitle>Aktivitas Sistem</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Disetujui</span>
-                      <span className="text-sm font-medium text-green-600">234</span>
+                      <span className="text-sm text-gray-600">Artikel Aktif</span>
+                      <span className="text-sm font-medium text-green-600">{stats?.totalArticles || 0}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Menunggu Review</span>
-                      <span className="text-sm font-medium text-yellow-600">12</span>
+                      <span className="text-sm text-gray-600">Pengguna Aktif</span>
+                      <span className="text-sm font-medium text-blue-600">{stats?.totalUsers || 0}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Ditolak</span>
-                      <span className="text-sm font-medium text-red-600">8</span>
+                      <span className="text-sm text-gray-600">Total Interaksi</span>
+                      <span className="text-sm font-medium text-purple-600">{(stats?.totalLikes || 0) + (stats?.totalComments || 0) + (stats?.totalBookmarks || 0)}</span>
                     </div>
                   </div>
                 </CardContent>
@@ -347,16 +342,16 @@ export default function AdminDashboard() {
                 <CardContent>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">USER</span>
-                      <span className="text-sm font-medium">{(stats?.totalUsers || 0) - 2}</span>
+                      <span className="text-sm text-gray-600">Total Pengguna</span>
+                      <span className="text-sm font-medium">{stats?.totalUsers || 0}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">ADMIN</span>
-                      <span className="text-sm font-medium">1</span>
+                      <span className="text-sm text-gray-600">Total Artikel</span>
+                      <span className="text-sm font-medium">{stats?.totalArticles || 0}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">DEVELOPER</span>
-                      <span className="text-sm font-medium">1</span>
+                      <span className="text-sm text-gray-600">Total Komentar</span>
+                      <span className="text-sm font-medium">{stats?.totalComments || 0}</span>
                     </div>
                   </div>
                 </CardContent>
@@ -369,16 +364,16 @@ export default function AdminDashboard() {
                 <CardContent>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Aktif 24 jam terakhir</span>
-                      <span className="text-sm font-medium">156</span>
+                      <span className="text-sm text-gray-600">Total Suka</span>
+                      <span className="text-sm font-medium">{stats?.totalLikes || 0}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Aktif 7 hari terakhir</span>
-                      <span className="text-sm font-medium">892</span>
+                      <span className="text-sm text-gray-600">Total Bookmark</span>
+                      <span className="text-sm font-medium">{stats?.totalBookmarks || 0}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Aktif 30 hari terakhir</span>
-                      <span className="text-sm font-medium">2,345</span>
+                      <span className="text-sm text-gray-600">Rata-rata per Artikel</span>
+                      <span className="text-sm font-medium">{stats?.totalArticles ? Math.round(((stats?.totalLikes || 0) + (stats?.totalComments || 0)) / stats.totalArticles) : 0}</span>
                     </div>
                   </div>
                 </CardContent>
