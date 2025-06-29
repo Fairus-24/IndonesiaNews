@@ -57,6 +57,21 @@ export default function DeveloperSettings() {
     },
   });
 
+  // Fetch current settings
+  const { data: currentSettings = [] } = useQuery({
+    queryKey: ["/api/dev/settings"],
+    queryFn: async () => {
+      const response = await fetch("/api/dev/settings", {
+        credentials: "include",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+        },
+      });
+      if (!response.ok) throw new Error("Failed to fetch settings");
+      return response.json() as Promise<Setting[]>;
+    },
+  });
+
   // Save site setting mutation
   const saveSettingMutation = useMutation({
     mutationFn: (data: SiteSettingFormData) =>
@@ -67,7 +82,7 @@ export default function DeveloperSettings() {
         description: "Pengaturan berhasil disimpan",
       });
       form.reset();
-      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dev/settings"] });
     },
     onError: (error) => {
       toast({
@@ -75,6 +90,35 @@ export default function DeveloperSettings() {
         description: error.message || "Gagal menyimpan pengaturan",
         variant: "destructive",
       });
+    },
+  });
+
+  // Delete setting mutation
+  const deleteSettingMutation = useMutation({
+    mutationFn: (key: string) =>
+      apiRequest("DELETE", `/api/dev/settings/${key}`),
+    onSuccess: () => {
+      toast({
+        title: "Berhasil",
+        description: "Pengaturan berhasil dihapus",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/dev/settings"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Gagal menghapus pengaturan",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update feature flag mutation
+  const updateFeatureFlagMutation = useMutation({
+    mutationFn: ({ key, value }: { key: string; value: boolean }) =>
+      apiRequest("POST", "/api/dev/settings", { key, value, description: `Feature flag: ${key}` }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/dev/settings"] });
     },
   });
 
@@ -99,85 +143,30 @@ export default function DeveloperSettings() {
     }
   };
 
-  const siteSettings = [
-    {
-      key: "site_name",
-      value: "Semua Tentang Indonesia",
-      description: "Nama website",
-      type: "text",
-    },
-    {
-      key: "site_description",
-      value: "Portal berita terpercaya yang menyajikan informasi terkini tentang Indonesia",
-      description: "Deskripsi website",
-      type: "textarea",
-    },
-    {
-      key: "site_logo",
-      value: "/logo.png",
-      description: "URL logo website",
-      type: "text",
-    },
-    {
-      key: "meta_keywords",
-      value: "berita indonesia, news, artikel, nasional, ekonomi, olahraga",
-      description: "Meta keywords untuk SEO",
-      type: "text",
-    },
-    {
-      key: "theme_colors",
-      value: { primary: "#DC2626", secondary: "#FFFFFF" },
-      description: "Warna tema website",
-      type: "json",
-    },
-    {
-      key: "social_media",
-      value: {
-        facebook: "https://facebook.com/semuatentangindonesia",
-        twitter: "https://twitter.com/semuatentangid",
-        instagram: "https://instagram.com/semuatentangindonesia",
-      },
-      description: "Link media sosial",
-      type: "json",
-    },
-  ];
+  // Separate settings by type
+  const generalSettings = currentSettings.filter(setting => 
+    !setting.key.startsWith('enable_') && !setting.key.startsWith('maintenance_')
+  );
+  
+  const featureFlags = currentSettings.filter(setting => 
+    setting.key.startsWith('enable_') || setting.key.startsWith('maintenance_')
+  );
 
-  const featureFlags = [
-    {
-      key: "enable_comments",
-      value: true,
-      description: "Aktifkan sistem komentar",
+  // Fetch real system info
+  const { data: systemInfo, isLoading: systemLoading } = useQuery({
+    queryKey: ["/api/dev/logs"],
+    queryFn: async () => {
+      const response = await fetch("/api/dev/logs", {
+        credentials: "include",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+        },
+      });
+      if (!response.ok) throw new Error("Failed to fetch system info");
+      return response.json();
     },
-    {
-      key: "enable_bookmarks",
-      value: true,
-      description: "Aktifkan fitur bookmark",
-    },
-    {
-      key: "enable_search",
-      value: true,
-      description: "Aktifkan fitur pencarian",
-    },
-    {
-      key: "enable_social_share",
-      value: true,
-      description: "Aktifkan berbagi ke media sosial",
-    },
-    {
-      key: "maintenance_mode",
-      value: false,
-      description: "Mode maintenance",
-    },
-  ];
-
-  const systemInfo = {
-    nodeVersion: "18.17.0",
-    environment: process.env.NODE_ENV || "development",
-    databaseStatus: "Connected",
-    uptime: "2 days, 14 hours",
-    memoryUsage: "256 MB",
-    diskSpace: "2.1 GB free",
-  };
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
 
   return (
     <ProtectedRoute roles={["DEVELOPER"]}>
@@ -280,25 +269,47 @@ export default function DeveloperSettings() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {siteSettings.map((setting, index) => (
-                      <div key={index} className="p-4 bg-gray-50 rounded-lg">
+                    {generalSettings.map((setting) => (
+                      <div key={setting.id} className="p-4 bg-gray-50 rounded-lg">
                         <div className="flex items-center justify-between mb-2">
                           <span className="font-medium text-gray-900">
                             {setting.key}
                           </span>
-                          <Badge variant="outline">{setting.type}</Badge>
+                          <div className="flex items-center space-x-2">
+                            <Badge variant="outline">
+                              {typeof setting.value === 'object' ? 'json' : typeof setting.value}
+                            </Badge>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => deleteSettingMutation.mutate(setting.key)}
+                              disabled={deleteSettingMutation.isPending}
+                            >
+                              Hapus
+                            </Button>
+                          </div>
                         </div>
-                        <p className="text-sm text-gray-600 mb-2">
-                          {setting.description}
-                        </p>
+                        {setting.description && (
+                          <p className="text-sm text-gray-600 mb-2">
+                            {setting.description}
+                          </p>
+                        )}
                         <div className="bg-white p-2 rounded border text-sm font-mono">
-                          {setting.type === "json" 
+                          {typeof setting.value === 'object' 
                             ? JSON.stringify(setting.value, null, 2)
-                            : setting.value
+                            : String(setting.value)
                           }
                         </div>
+                        <p className="text-xs text-gray-500 mt-2">
+                          Diperbarui: {new Date(setting.updatedAt).toLocaleString('id-ID')}
+                        </p>
                       </div>
                     ))}
+                    {generalSettings.length === 0 && (
+                      <p className="text-gray-500 text-center py-4">
+                        Belum ada pengaturan. Tambahkan pengaturan baru menggunakan form di sebelah kiri.
+                      </p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -316,21 +327,32 @@ export default function DeveloperSettings() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
-                  {featureFlags.map((flag, index) => (
-                    <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  {featureFlags.map((flag) => (
+                    <div key={flag.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                       <div className="flex-1">
                         <h3 className="font-medium text-gray-900">{flag.key}</h3>
                         <p className="text-sm text-gray-600">{flag.description}</p>
+                        <p className="text-xs text-gray-500">
+                          Diperbarui: {new Date(flag.updatedAt).toLocaleString('id-ID')}
+                        </p>
                       </div>
                       <Switch
-                        checked={flag.value}
+                        checked={Boolean(flag.value)}
                         onCheckedChange={(checked) => {
-                          // In a real app, this would update the flag
-                          console.log(`Toggle ${flag.key} to ${checked}`);
+                          updateFeatureFlagMutation.mutate({
+                            key: flag.key,
+                            value: checked
+                          });
                         }}
+                        disabled={updateFeatureFlagMutation.isPending}
                       />
                     </div>
                   ))}
+                  {featureFlags.length === 0 && (
+                    <p className="text-gray-500 text-center py-4">
+                      Belum ada feature flags. Tambahkan dengan key yang dimulai dengan "enable_" atau "maintenance_".
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -348,34 +370,52 @@ export default function DeveloperSettings() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Node.js Version</span>
-                      <span className="font-medium">{systemInfo.nodeVersion}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Environment</span>
-                      <Badge variant={systemInfo.environment === "production" ? "default" : "secondary"}>
-                        {systemInfo.environment}
-                      </Badge>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Database Status</span>
-                      <Badge variant="default" className="bg-green-600">
-                        {systemInfo.databaseStatus}
-                      </Badge>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Uptime</span>
-                      <span className="font-medium">{systemInfo.uptime}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Memory Usage</span>
-                      <span className="font-medium">{systemInfo.memoryUsage}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Disk Space</span>
-                      <span className="font-medium">{systemInfo.diskSpace}</span>
-                    </div>
+                    {systemLoading ? (
+                      <div className="flex items-center justify-center py-4">
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                      </div>
+                    ) : systemInfo ? (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Node.js Version</span>
+                          <span className="font-medium">{systemInfo.nodeVersion}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Environment</span>
+                          <Badge variant={systemInfo.environment === "production" ? "default" : "secondary"}>
+                            {systemInfo.environment}
+                          </Badge>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Database Status</span>
+                          <Badge variant="default" className="bg-green-600">
+                            Connected
+                          </Badge>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Uptime</span>
+                          <span className="font-medium">
+                            {Math.floor(systemInfo.uptime / 3600)}h {Math.floor((systemInfo.uptime % 3600) / 60)}m
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Memory Usage</span>
+                          <span className="font-medium">
+                            {Math.round(systemInfo.memoryUsage.used / 1024 / 1024)} MB
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Total Articles</span>
+                          <span className="font-medium">{systemInfo.statistics?.totalArticles || 0}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Total Users</span>
+                          <span className="font-medium">{systemInfo.statistics?.totalUsers || 0}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="text-gray-500">Gagal memuat informasi sistem</p>
+                    )}
                   </div>
                 </CardContent>
               </Card>

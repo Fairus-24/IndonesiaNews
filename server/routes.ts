@@ -467,6 +467,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/dev/settings", authenticateToken, requireDeveloper, async (req: AuthRequest, res) => {
+    try {
+      const settings = await storage.getAllSiteSettings();
+      res.json(settings);
+    } catch (error) {
+      res.status(500).json({ message: "Gagal mengambil pengaturan" });
+    }
+  });
+
   app.post("/api/dev/settings", authenticateToken, requireDeveloper, async (req: AuthRequest, res) => {
     try {
       const settingData = insertSiteSettingSchema.parse(req.body);
@@ -477,6 +486,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: error.errors[0].message });
       }
       res.status(500).json({ message: "Gagal menyimpan pengaturan" });
+    }
+  });
+
+  app.delete("/api/dev/settings/:key", authenticateToken, requireDeveloper, async (req: AuthRequest, res) => {
+    try {
+      await storage.deleteSiteSetting(req.params.key);
+      res.json({ message: "Pengaturan berhasil dihapus" });
+    } catch (error) {
+      res.status(500).json({ message: "Gagal menghapus pengaturan" });
+    }
+  });
+
+  // System logs endpoint for developers
+  app.get("/api/dev/logs", authenticateToken, requireDeveloper, async (req: AuthRequest, res) => {
+    try {
+      // Return system information and recent activity
+      const stats = await storage.getStatistics();
+      const recentArticles = await storage.getArticles(1, 5);
+      const recentComments = await storage.getAllComments();
+      
+      const systemInfo = {
+        nodeVersion: process.version,
+        environment: process.env.NODE_ENV || "development",
+        uptime: process.uptime(),
+        memoryUsage: process.memoryUsage(),
+        timestamp: new Date().toISOString(),
+        statistics: stats,
+        recentActivity: {
+          articles: recentArticles.articles.slice(0, 3),
+          comments: recentComments.slice(0, 5),
+        }
+      };
+      
+      res.json(systemInfo);
+    } catch (error) {
+      res.status(500).json({ message: "Gagal mengambil informasi sistem" });
     }
   });
 

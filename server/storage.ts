@@ -73,7 +73,9 @@ export interface IStorage {
 
   // Site settings methods
   getSiteSetting(key: string): Promise<SiteSetting | undefined>;
-  setSiteSetting(setting: InsertSiteSetting): Promise<SiteSetting>;
+  getAllSiteSettings(): Promise<SiteSetting[]>;
+  setSiteSetting(data: InsertSiteSetting): Promise<SiteSetting>;
+  deleteSiteSetting(key: string): Promise<void>;
 
   // Statistics methods
   getStatistics(): Promise<{
@@ -261,7 +263,7 @@ export class DatabaseStorage implements IStorage {
         category: categories,
         likesCount: count(likes.id),
         commentsCount: count(comments.id),
-        bookmarksCount: count(bookmarks.id),
+        bookmarks: count(bookmarks.id),
       })
       .from(articles)
       .leftJoin(users, eq(articles.authorId, users.id))
@@ -458,16 +460,34 @@ export class DatabaseStorage implements IStorage {
     return setting || undefined;
   }
 
-  async setSiteSetting(insertSetting: InsertSiteSetting): Promise<SiteSetting> {
-    const [setting] = await db
-      .insert(siteSettings)
-      .values({ ...insertSetting, updatedAt: new Date() })
-      .onConflictDoUpdate({
-        target: siteSettings.key,
-        set: { value: insertSetting.value, updatedAt: new Date() }
-      })
-      .returning();
-    return setting;
+  async getAllSiteSettings(): Promise<SiteSetting[]> {
+    return await db.select().from(siteSettings).orderBy(siteSettings.key);
+  }
+
+  async setSiteSetting(data: InsertSiteSetting): Promise<SiteSetting> {
+    const existing = await this.getSiteSetting(data.key);
+
+    if (existing) {
+      // Update existing setting
+      const result = await db
+        .update(siteSettings)
+        .set({ 
+          value: data.value, 
+          description: data.description,
+          updatedAt: new Date()
+        })
+        .where(eq(siteSettings.key, data.key))
+        .returning();
+      return result[0];
+    } else {
+      // Create new setting
+      const result = await db.insert(siteSettings).values(data).returning();
+      return result[0];
+    }
+  }
+
+  async deleteSiteSetting(key: string): Promise<void> {
+    await db.delete(siteSettings).where(eq(siteSettings.key, key));
   }
 
   async getStatistics(): Promise<{
