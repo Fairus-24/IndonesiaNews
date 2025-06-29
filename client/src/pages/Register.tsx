@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
+import { FcGoogle } from "react-icons/fc";
 
 const registerSchema = z.object({
   username: z.string().min(3, "Username minimal 3 karakter"),
@@ -27,6 +28,25 @@ export default function Register() {
   const [, setLocation] = useLocation();
   const { register: registerUser } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  // Check for token in URL (from Google OAuth callback)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get("token");
+    const error = urlParams.get("error");
+    
+    if (token) {
+      // Store token and redirect
+      localStorage.setItem("token", token);
+      window.location.href = "/";
+    }
+    
+    if (error) {
+      // Handle error (you can show a toast here)
+      console.error("Google registration failed:", error);
+    }
+  }, []);
 
   const form = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
@@ -53,6 +73,22 @@ export default function Register() {
       // Error handled in useAuth
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setIsGoogleLoading(true);
+    try {
+      const response = await fetch("/api/auth/google");
+      const data = await response.json();
+      if (data.url) {
+        // Redirect to Google OAuth
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      console.error("Google registration error:", error);
+    } finally {
+      setIsGoogleLoading(false);
     }
   };
 
@@ -165,6 +201,35 @@ export default function Register() {
               )}
             </Button>
           </form>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">Atau</span>
+            </div>
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={handleGoogleLogin}
+            disabled={isGoogleLoading}
+          >
+            {isGoogleLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Menghubungkan...
+              </>
+            ) : (
+              <>
+                <FcGoogle className="mr-2 h-5 w-5" />
+                Daftar dengan Google
+              </>
+            )}
+          </Button>
 
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">

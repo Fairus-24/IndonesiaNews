@@ -96,6 +96,7 @@ This is a full-stack web application built as an Indonesian news portal. The app
 
 ## Changelog
 - June 29, 2025. Initial setup
+- June 29, 2025. Added Google OAuth authentication with login/registration support
 
 ## User Preferences
 

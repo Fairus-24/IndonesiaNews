@@ -7,6 +7,7 @@ import { insertUserSchema, insertArticleSchema, insertCommentSchema, insertCateg
 import { z } from "zod";
 import rateLimit from "express-rate-limit";
 import cors from "cors";
+import { OAuth2Client } from "google-auth-library";
 
 // Rate limiting
 const limiter = rateLimit({
@@ -20,6 +21,15 @@ const authLimiter = rateLimit({
   max: 5, // limit each IP to 5 auth requests per windowMs
   message: "Terlalu banyak percobaan login, coba lagi nanti",
 });
+
+// Google OAuth setup
+const googleClient = new OAuth2Client(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  process.env.NODE_ENV === "production" 
+    ? "https://your-domain.com/api/auth/google/callback"
+    : "http://localhost:5000/api/auth/google/callback"
+);
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // CORS configuration
@@ -138,6 +148,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
         avatar: req.user!.avatar,
       },
     });
+  });
+
+  // Google OAuth routes
+  app.get("/api/auth/google", (req, res) => {
+    const authUrl = googleClient.generateAuthUrl({
+      access_type: "offline",
+      scope: ["https://www.googleapis.com/auth/userinfo.profile", "https://www.googleapis.com/auth/userinfo.email"],
+    });
+    res.json({ url: authUrl });
+  });
+
+  app.get("/api/auth/google/callback", async (req, res) => {
+    try {
+      const { code } = req.query;
+      if (!code || typeof code !== "string") {
+        return res.redirect("/login?error=google_auth_failed");
+      }
+
+      // Exchange code for tokens
+      const { tokens } = await googleClient.getToken(code);
+      googleClient.setCredentials(tokens);
+
+      // Get user info from Google
+      const response = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+        headers: {
+          Authorization: `Bearer ${tokens.access_token}`,
+        },
+      });
+      const googleUser = await response.json();
+
+      // Check if user exists
+      let user = await storage.getUserByEmail(googleUser.email);
+      
+      if (!user) {
+        // Create new user
+        const username = googleUser.email.split("@")[0] + Math.floor(Math.random() * 1000);
+        user = await storage.createUser({
+          username,
+          email: googleUser.email,
+          password: await hashPassword(Math.random().toString(36)), // Random password for Google users
+          fullName: googleUser.name || googleUser.email,
+          role: "USER",
+          avatar: googleUser.picture,
+          isActive: true,
+        });
+      }
+
+      // Generate JWT token
+      const token = generateToken(user);
+      
+      // Redirect to frontend with token
+      res.redirect(`/?token=${token}`);
+    } catch (error) {
+      console.error("Google OAuth error:", error);
+      res.redirect("/login?error=google_auth_failed");
+    }
   });
 
   // Category routes
