@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { Statistics } from "@/types";
+import { Link } from "wouter";
 import { 
   BarChart3, 
   Users, 
@@ -223,6 +225,42 @@ export default function AdminDashboard() {
           </TabsContent>
 
           <TabsContent value="content" className="space-y-6">
+            {/* Navigation Cards */}
+            <div className="grid md:grid-cols-2 gap-6 mb-6">
+              <Link href="/admin/articles">
+                <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-lg font-semibold">Manajemen Artikel</CardTitle>
+                    <FileText className="h-6 w-6 text-indonesia-red" />
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-bold">{stats?.totalArticles || 0} Artikel</p>
+                    <p className="text-sm text-gray-600 mt-2">Kelola artikel, tambah konten baru, edit atau hapus artikel</p>
+                    <Button className="mt-4 bg-indonesia-red hover:bg-indonesia-red/90" size="sm">
+                      Kelola Artikel →
+                    </Button>
+                  </CardContent>
+                </Card>
+              </Link>
+
+              <Link href="/admin/comments">
+                <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-lg font-semibold">Moderasi Komentar</CardTitle>
+                    <MessageCircle className="h-6 w-6 text-blue-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-bold">{stats?.totalComments || 0} Komentar</p>
+                    <p className="text-sm text-gray-600 mt-2">Setujui atau tolak komentar yang masuk</p>
+                    <Button className="mt-4 bg-blue-600 hover:bg-blue-700" size="sm">
+                      Kelola Komentar →
+                    </Button>
+                  </CardContent>
+                </Card>
+              </Link>
+            </div>
+
+            {/* Statistics Cards */}
             <div className="grid md:grid-cols-3 gap-6">
               <Card>
                 <CardHeader>
