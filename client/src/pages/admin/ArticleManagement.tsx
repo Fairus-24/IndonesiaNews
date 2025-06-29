@@ -50,13 +50,7 @@ export default function ArticleManagement() {
   const { data: articlesResponse, isLoading } = useQuery({
     queryKey: ["/api/articles", { page, published: false }],
     queryFn: async () => {
-      const response = await fetch(`/api/articles?page=${page}&limit=10&published=false`, {
-        credentials: "include",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
-        },
-      });
-      if (!response.ok) throw new Error("Failed to fetch articles");
+      const response = await apiRequest("GET", `/api/articles?page=${page}&limit=10&published=false`);
       return response.json();
     },
   });
@@ -65,8 +59,7 @@ export default function ArticleManagement() {
   const { data: categories = [] } = useQuery({
     queryKey: ["/api/categories"],
     queryFn: async () => {
-      const response = await fetch("/api/categories");
-      if (!response.ok) throw new Error("Failed to fetch categories");
+      const response = await apiRequest("GET", "/api/categories");
       return response.json() as Promise<Category[]>;
     },
   });
@@ -80,6 +73,27 @@ export default function ArticleManagement() {
       content: "",
       categoryId: "",
       isPublished: false,
+    },
+  });
+
+  // Create article mutation
+  const createMutation = useMutation({
+    mutationFn: (data: FormData) => apiRequest("POST", "/api/articles", data),
+    onSuccess: () => {
+      toast({
+        title: "Berhasil",
+        description: "Artikel berhasil dibuat",
+      });
+      setIsCreateDialogOpen(false);
+      form.reset();
+      queryClient.invalidateQueries({ queryKey: ["/api/articles"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Gagal membuat artikel",
+        variant: "destructive",
+      });
     },
   });
 
@@ -163,6 +177,19 @@ export default function ArticleManagement() {
     },
   });
 
+  const handleEdit = (article: Article) => {
+    setEditingArticle(article);
+    form.reset({
+      title: article.title,
+      slug: article.slug,
+      excerpt: article.excerpt,
+      content: article.content,
+      categoryId: article.category.id.toString(),
+      isPublished: article.isPublished,
+    });
+    setIsCreateDialogOpen(true);
+  };
+
   const onSubmit = (data: ArticleFormData) => {
     const formData = new FormData();
     formData.append("title", data.title);
@@ -171,6 +198,17 @@ export default function ArticleManagement() {
     formData.append("content", data.content);
     formData.append("categoryId", data.categoryId);
     formData.append("isPublished", data.isPublished.toString());
+
+    if (data.coverImage && data.coverImage[0]) {
+      formData.append("coverImage", data.coverImage[0]);
+    }
+
+    if (editingArticle) {
+      updateMutation.mutate({ id: editingArticle.id, data: formData });
+    } else {
+      createMutation.mutate(formData);
+    }
+  };
 
     if (data.coverImage && data.coverImage[0]) {
       formData.append("coverImage", data.coverImage[0]);
