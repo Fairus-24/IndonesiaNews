@@ -373,6 +373,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/admin/comments", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const comments = await storage.getAllComments();
+      res.json(comments);
+    } catch (error) {
+      res.status(500).json({ message: "Gagal mengambil semua komentar" });
+    }
+  });
+
   app.get("/api/admin/comments/pending", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const comments = await storage.getPendingComments();

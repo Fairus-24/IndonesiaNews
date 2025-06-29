@@ -35,6 +35,21 @@ export default function CommentModeration() {
     },
   });
 
+  // Fetch all comments for statistics
+  const { data: allComments = [] } = useQuery({
+    queryKey: ["/api/admin/comments"],
+    queryFn: async () => {
+      const response = await fetch("/api/admin/comments", {
+        credentials: "include",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+        },
+      });
+      if (!response.ok) throw new Error("Failed to fetch all comments");
+      return response.json() as Promise<Comment[]>;
+    },
+  });
+
   // Approve comment mutation
   const approveMutation = useMutation({
     mutationFn: (commentId: number) =>
@@ -171,7 +186,7 @@ export default function CommentModeration() {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-sm font-medium text-gray-600">Total Komentar</h3>
-                  <p className="text-3xl font-bold text-green-600">{comments.length}</p>
+                  <p className="text-3xl font-bold text-green-600">{allComments.length}</p>
                 </div>
                 <Check className="h-8 w-8 text-green-400" />
               </div>
@@ -183,7 +198,7 @@ export default function CommentModeration() {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-sm font-medium text-gray-600">Komentar Disetujui</h3>
-                  <p className="text-3xl font-bold text-red-600">{comments.filter(comment => comment.isApproved).length}</p>
+                  <p className="text-3xl font-bold text-green-600">{allComments.filter(comment => comment.isApproved).length}</p>
                 </div>
                 <X className="h-8 w-8 text-red-400" />
               </div>
