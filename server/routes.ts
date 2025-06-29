@@ -266,10 +266,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         publishedAt: req.body.isPublished === "true" ? new Date() : null,
       });
 
+      let coverImage = undefined;
+      if (req.body.imageUploadType === "url" && req.body.coverImageUrl) {
+        coverImage = req.body.coverImageUrl;
+      } else if (req.body.imageUploadType === "file" && req.file) {
+        coverImage = `/uploads/${req.file.filename}`;
+      }
+
       const article = await storage.createArticle({
         ...articleData,
         authorId: req.user!.id,
-        coverImage: req.file ? `/uploads/${req.file.filename}` : undefined,
+        coverImage,
       });
 
       res.status(201).json(article);
@@ -290,6 +297,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isPublished: req.body.isPublished !== undefined ? req.body.isPublished === "true" : undefined,
         publishedAt: req.body.isPublished === "true" ? new Date() : undefined,
       });
+
+      let coverImage = updates.coverImage;
+      if (req.body.imageUploadType === "url" && req.body.coverImageUrl) {
+        coverImage = req.body.coverImageUrl;
+      } else if (req.body.imageUploadType === "file" && req.file) {
+        coverImage = `/uploads/${req.file.filename}`;
+      }
+
+      if (coverImage !== undefined) {
+        updates.coverImage = coverImage;
+      }
 
       if (req.file) {
         updates.coverImage = `/uploads/${req.file.filename}`;

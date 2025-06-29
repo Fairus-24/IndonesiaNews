@@ -35,6 +35,8 @@ const articleSchema = z.object({
   categoryId: z.string().min(1, "Kategori diperlukan"),
   isPublished: z.boolean(),
   coverImage: z.any().optional(),
+  coverImageUrl: z.string().optional(),
+  imageUploadType: z.enum(["file", "url"]).default("file"),
 });
 
 type ArticleFormData = z.infer<typeof articleSchema>;
@@ -43,6 +45,7 @@ export default function ArticleManagement() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
   const [page, setPage] = useState(1);
+  const [imageUploadType, setImageUploadType] = useState<"file" | "url">("file");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -73,27 +76,8 @@ export default function ArticleManagement() {
       content: "",
       categoryId: "",
       isPublished: false,
-    },
-  });
-
-  // Create article mutation
-  const createMutation = useMutation({
-    mutationFn: (data: FormData) => apiRequest("POST", "/api/articles", data),
-    onSuccess: () => {
-      toast({
-        title: "Berhasil",
-        description: "Artikel berhasil dibuat",
-      });
-      setIsCreateDialogOpen(false);
-      form.reset();
-      queryClient.invalidateQueries({ queryKey: ["/api/articles"] });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error.message || "Gagal membuat artikel",
-        variant: "destructive",
-      });
+      coverImageUrl: "",
+      imageUploadType: "file",
     },
   });
 
@@ -179,6 +163,8 @@ export default function ArticleManagement() {
 
   const handleEdit = (article: Article) => {
     setEditingArticle(article);
+    const isUrl = article.coverImage?.startsWith('http');
+    setImageUploadType(isUrl ? "url" : "file");
     form.reset({
       title: article.title,
       slug: article.slug,
@@ -186,6 +172,8 @@ export default function ArticleManagement() {
       content: article.content,
       categoryId: article.category.id.toString(),
       isPublished: article.isPublished,
+      coverImageUrl: isUrl ? article.coverImage : "",
+      imageUploadType: isUrl ? "url" : "file",
     });
     setIsCreateDialogOpen(true);
   };
@@ -198,9 +186,12 @@ export default function ArticleManagement() {
     formData.append("content", data.content);
     formData.append("categoryId", data.categoryId);
     formData.append("isPublished", data.isPublished.toString());
+    formData.append("imageUploadType", imageUploadType);
 
-    if (data.coverImage && data.coverImage[0]) {
+    if (imageUploadType === "file" && data.coverImage && data.coverImage[0]) {
       formData.append("coverImage", data.coverImage[0]);
+    } else if (imageUploadType === "url" && data.coverImageUrl) {
+      formData.append("coverImageUrl", data.coverImageUrl);
     }
 
     if (editingArticle) {
@@ -210,28 +201,7 @@ export default function ArticleManagement() {
     }
   };
 
-    if (data.coverImage && data.coverImage[0]) {
-      formData.append("coverImage", data.coverImage[0]);
-    }
-
-    if (editingArticle) {
-      updateMutation.mutate({ id: editingArticle.id, data: formData });
-    } else {
-      createMutation.mutate(formData);
-    }
-  };
-
-  const handleEdit = (article: Article) => {
-    setEditingArticle(article);
-    form.reset({
-      title: article.title,
-      slug: article.slug,
-      excerpt: article.excerpt,
-      content: article.content,
-      categoryId: article.category.id.toString(),
-      isPublished: article.isPublished,
-    });
-  };
+    
 
   const handleDelete = (id: number) => {
     if (confirm("Apakah Anda yakin ingin menghapus artikel ini?")) {
@@ -363,13 +333,37 @@ export default function ArticleManagement() {
                   </div>
 
                   <div>
-                    <Label htmlFor="coverImage">Gambar Sampul</Label>
-                    <Input
-                      id="coverImage"
-                      type="file"
-                      accept="image/*"
-                      {...form.register("coverImage")}
-                    />
+                    <Label>Gambar Sampul</Label>
+                    <div className="space-y-3">
+                      <Select
+                        value={imageUploadType}
+                        onValueChange={(value: "file" | "url") => {
+                          setImageUploadType(value);
+                          form.setValue("imageUploadType", value);
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="file">Upload File</SelectItem>
+                          <SelectItem value="url">URL Gambar</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      
+                      {imageUploadType === "file" ? (
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          {...form.register("coverImage")}
+                        />
+                      ) : (
+                        <Input
+                          placeholder="https://example.com/image.jpg"
+                          {...form.register("coverImageUrl")}
+                        />
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -388,6 +382,7 @@ export default function ArticleManagement() {
                     onClick={() => {
                       setIsCreateDialogOpen(false);
                       setEditingArticle(null);
+                      setImageUploadType("file");
                       form.reset();
                     }}
                   >
@@ -609,13 +604,37 @@ export default function ArticleManagement() {
                 </div>
 
                 <div>
-                  <Label htmlFor="coverImage">Gambar Sampul</Label>
-                  <Input
-                    id="coverImage"
-                    type="file"
-                    accept="image/*"
-                    {...form.register("coverImage")}
-                  />
+                  <Label>Gambar Sampul</Label>
+                  <div className="space-y-3">
+                    <Select
+                      value={imageUploadType}
+                      onValueChange={(value: "file" | "url") => {
+                        setImageUploadType(value);
+                        form.setValue("imageUploadType", value);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="file">Upload File</SelectItem>
+                        <SelectItem value="url">URL Gambar</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    
+                    {imageUploadType === "file" ? (
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        {...form.register("coverImage")}
+                      />
+                    ) : (
+                      <Input
+                        placeholder="https://example.com/image.jpg"
+                        {...form.register("coverImageUrl")}
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -633,6 +652,7 @@ export default function ArticleManagement() {
                   variant="outline"
                   onClick={() => {
                     setEditingArticle(null);
+                    setImageUploadType("file");
                     form.reset();
                   }}
                 >
