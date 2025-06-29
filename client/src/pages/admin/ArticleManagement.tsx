@@ -51,7 +51,7 @@ export default function ArticleManagement() {
 
   // Fetch articles
   const { data: articlesResponse, isLoading } = useQuery({
-    queryKey: ["/api/articles", { page, published: false }],
+    queryKey: ["/api/articles", { page, published: "all" }],
     queryFn: async () => {
       const response = await apiRequest("GET", `/api/articles?page=${page}&limit=10&published=false`);
       return response.json();
@@ -185,7 +185,7 @@ export default function ArticleManagement() {
     formData.append("excerpt", data.excerpt);
     formData.append("content", data.content);
     formData.append("categoryId", data.categoryId);
-    formData.append("isPublished", data.isPublished.toString());
+    formData.append("isPublished", data.isPublished ? "true" : "false");
     formData.append("imageUploadType", imageUploadType);
 
     if (imageUploadType === "file" && data.coverImage && data.coverImage[0]) {

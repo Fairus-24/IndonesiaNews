@@ -31,6 +31,7 @@ export default function Home() {
       const params = new URLSearchParams({
         page: page.toString(),
         limit: "10",
+        published: "true", // Explicitly request published articles
         ...(category && { category }),
         ...(search && { search }),
       });
