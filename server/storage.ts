@@ -146,7 +146,7 @@ export class DatabaseStorage implements IStorage {
     limit: number = 10,
     categorySlug?: string,
     search?: string,
-    published: boolean = true
+    published?: boolean
   ): Promise<{ articles: ArticleWithDetails[]; total: number }> {
     let whereConditions = [];
 
@@ -194,7 +194,7 @@ export class DatabaseStorage implements IStorage {
         .orderBy(desc(articles.createdAt))
         .limit(limit)
         .offset((page - 1) * limit),
-      
+
       db
         .select({ count: count() })
         .from(articles)

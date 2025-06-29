@@ -236,9 +236,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const limit = parseInt(req.query.limit as string) || 10;
       const categorySlug = req.query.category as string;
       const search = req.query.search as string;
-      // Fix: if published parameter is not explicitly set to "false", show published articles only
-      // For admin panel, it should pass published=false to see all articles
-      const published = req.query.published === "false" ? false : true;
+      // Fix: Handle different published parameter values properly
+      // If published="false", show all articles (for admin)
+      // If published="true" or not specified, show only published articles (for public)
+      let published: boolean | undefined;
+      if (req.query.published === "false") {
+        published = undefined; // Show all articles for admin
+      } else {
+        published = true; // Show only published articles for public
+      }
 
       const result = await storage.getArticles(page, limit, categorySlug, search, published);
       res.json(result);
