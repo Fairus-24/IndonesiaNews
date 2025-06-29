@@ -170,8 +170,8 @@ export default function CommentModeration() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-sm font-medium text-gray-600">Disetujui Hari Ini</h3>
-                  <p className="text-3xl font-bold text-green-600">24</p>
+                  <h3 className="text-sm font-medium text-gray-600">Total Komentar</h3>
+                  <p className="text-3xl font-bold text-green-600">{comments.length}</p>
                 </div>
                 <Check className="h-8 w-8 text-green-400" />
               </div>
@@ -182,8 +182,8 @@ export default function CommentModeration() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-sm font-medium text-gray-600">Ditolak Hari Ini</h3>
-                  <p className="text-3xl font-bold text-red-600">3</p>
+                  <h3 className="text-sm font-medium text-gray-600">Komentar Disetujui</h3>
+                  <p className="text-3xl font-bold text-red-600">{comments.filter(comment => comment.isApproved).length}</p>
                 </div>
                 <X className="h-8 w-8 text-red-400" />
               </div>
