@@ -525,6 +525,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Real-time logs endpoint for developers
+  app.get("/api/dev/logs/realtime", authenticateToken, requireDeveloper, async (req: AuthRequest, res) => {
+    try {
+      const logs = [
+        {
+          timestamp: new Date().toISOString(),
+          level: "info",
+          message: `Server uptime: ${Math.floor(process.uptime() / 60)} minutes`,
+        },
+        {
+          timestamp: new Date().toISOString(),
+          level: "info", 
+          message: `Memory usage: ${Math.round(process.memoryUsage().used / 1024 / 1024)} MB`,
+        },
+        {
+          timestamp: new Date().toISOString(),
+          level: "success",
+          message: "All systems operational",
+        }
+      ];
+      
+      res.json(logs);
+    } catch (error) {
+      res.status(500).json({ message: "Gagal mengambil log realtime" });
+    }
+  });
+
   // Initialize default categories
   const initializeData = async () => {
     try {

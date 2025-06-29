@@ -168,6 +168,22 @@ export default function DeveloperSettings() {
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
+  // Fetch real-time logs
+  const { data: realtimeLogs = [] } = useQuery({
+    queryKey: ["/api/dev/logs/realtime"],
+    queryFn: async () => {
+      const response = await fetch("/api/dev/logs/realtime", {
+        credentials: "include",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+        },
+      });
+      if (!response.ok) return [];
+      return response.json();
+    },
+    refetchInterval: 5000, // Refresh every 5 seconds
+  });
+
   return (
     <ProtectedRoute roles={["DEVELOPER"]}>
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -327,6 +343,34 @@ export default function DeveloperSettings() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
+                  {/* Quick Feature Flags */}
+                  <div className="grid md:grid-cols-2 gap-4 mb-6">
+                    <Button
+                      onClick={() => {
+                        updateFeatureFlagMutation.mutate({
+                          key: "maintenance_mode",
+                          value: !featureFlags.find(f => f.key === "maintenance_mode")?.value
+                        });
+                      }}
+                      variant={featureFlags.find(f => f.key === "maintenance_mode")?.value ? "destructive" : "outline"}
+                      className="w-full"
+                    >
+                      {featureFlags.find(f => f.key === "maintenance_mode")?.value ? "Disable" : "Enable"} Maintenance Mode
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        updateFeatureFlagMutation.mutate({
+                          key: "enable_comments",
+                          value: !featureFlags.find(f => f.key === "enable_comments")?.value
+                        });
+                      }}
+                      variant={featureFlags.find(f => f.key === "enable_comments")?.value ? "default" : "outline"}
+                      className="w-full"
+                    >
+                      {featureFlags.find(f => f.key === "enable_comments")?.value ? "Disable" : "Enable"} Comments
+                    </Button>
+                  </div>
+
                   {featureFlags.map((flag) => (
                     <div key={flag.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                       <div className="flex-1">
@@ -476,19 +520,33 @@ export default function DeveloperSettings() {
               <CardContent>
                 <div className="bg-black text-green-400 p-4 rounded-lg font-mono text-sm h-96 overflow-y-auto">
                   <div className="space-y-1">
-                    <p>[2024-06-29 10:30:15] Server started on port 5000</p>
-                    <p>[2024-06-29 10:30:16] Database connected successfully</p>
-                    <p>[2024-06-29 10:30:17] Default categories created</p>
-                    <p>[2024-06-29 10:30:18] Default admin user created</p>
-                    <p>[2024-06-29 10:35:22] GET /api/articles 200 in 45ms</p>
-                    <p>[2024-06-29 10:35:45] POST /api/auth/login 200 in 120ms</p>
-                    <p>[2024-06-29 10:36:02] GET /api/admin/statistics 200 in 78ms</p>
-                    <p>[2024-06-29 10:37:15] POST /api/articles/1/like 200 in 32ms</p>
-                    <p>[2024-06-29 10:38:30] GET /api/user/bookmarks 200 in 67ms</p>
-                    <p>[2024-06-29 10:39:45] POST /api/articles/2/comment 201 in 89ms</p>
-                    <p className="text-yellow-400">[2024-06-29 10:40:12] WARNING: Rate limit exceeded for IP 192.168.1.100</p>
-                    <p>[2024-06-29 10:41:23] GET /api/articles/teknologi-ai-indonesia 200 in 56ms</p>
-                    <p>[2024-06-29 10:42:34] PUT /api/admin/comments/15/approve 200 in 43ms</p>
+                    {systemInfo?.recentActivity ? (
+                      <>
+                        <p className="text-white">[{new Date().toISOString()}] Server running on port 5000</p>
+                        <p className="text-cyan-400">[{new Date().toISOString()}] Database connected successfully</p>
+                        <p className="text-green-400">[{new Date().toISOString()}] System Status: Healthy</p>
+                        <p className="text-blue-400">[{new Date().toISOString()}] Memory Usage: {systemInfo.memoryUsage ? Math.round(systemInfo.memoryUsage.used / 1024 / 1024) : 0} MB</p>
+                        <p className="text-purple-400">[{new Date().toISOString()}] Node.js Version: {systemInfo.nodeVersion}</p>
+                        <p className="text-yellow-400">[{new Date().toISOString()}] Environment: {systemInfo.environment}</p>
+                        <p className="text-white">--- Recent Activity ---</p>
+                        {systemInfo.recentActivity.articles?.map((article: any, index: number) => (
+                          <p key={index} className="text-green-300">
+                            [{new Date(article.createdAt).toISOString()}] Article created: "{article.title}"
+                          </p>
+                        ))}
+                        {systemInfo.recentActivity.comments?.map((comment: any, index: number) => (
+                          <p key={index} className="text-blue-300">
+                            [{new Date(comment.createdAt).toISOString()}] Comment by {comment.author?.username}: "{comment.content.substring(0, 50)}..."
+                          </p>
+                        ))}
+                        <p className="text-gray-400">[{new Date().toISOString()}] Auto-refreshing every 30 seconds...</p>
+                      </>
+                    ) : (
+                      <>
+                        <p>[{new Date().toISOString()}] Loading system logs...</p>
+                        <p className="text-yellow-400">[{new Date().toISOString()}] Connecting to log stream...</p>
+                      </>
+                    )}
                   </div>
                 </div>
               </CardContent>

@@ -200,7 +200,7 @@ export default function CommentModeration() {
                   <h3 className="text-sm font-medium text-gray-600">Komentar Disetujui</h3>
                   <p className="text-3xl font-bold text-green-600">{allComments.filter(comment => comment.isApproved).length}</p>
                 </div>
-                <X className="h-8 w-8 text-red-400" />
+                <Check className="h-8 w-8 text-green-400" />
               </div>
             </CardContent>
           </Card>
