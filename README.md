@@ -1,3 +1,36 @@
+<!-- Banner / Logo / Cover -->
+<p align="center">
+  <img src="https://user-images.githubusercontent.com/placeholder/indonesianews-banner.png" alt="IndonesiaNews" width="400"/>
+</p>
+
+<h1 align="center">🇮🇩 IndonesiaNews</h1>
+<p align="center">
+  <b>Portal Berita Indonesia Modern - Fullstack React, Express, Drizzle ORM</b>
+</p>
+<p align="center">
+  <a href="#instalasi">Instalasi</a> • <a href="#flowchart-aplikasi">Flowchart</a> • <a href="#alur-kerja-program-detail">Alur Kerja</a>
+</p>
+
+---
+
+## 🚀 Instalasi
+
+1. <b>Clone repository:</b>
+   ```bash
+   git clone <url-repo-anda>
+   cd IndonesiaNews
+   ```
+2. <b>Install dependencies:</b>
+   ```bash
+   npm install
+   ```
+3. <b>Jalankan aplikasi (dev mode):</b>
+   ```bash
+   npm run dev
+   ```
+
+---
+
 # IndonesiaNews
 
 ## Flowchart Aplikasi
@@ -31,12 +64,6 @@ flowchart TD
     H1 -->|Data| B
     H2 -->|File URL| B
 ```
-
-## Penjelasan Singkat
-- **Frontend**: React + Vite, halaman utama, kategori, detail artikel, bookmark, settings, admin panel.
-- **Backend**: Express.js, REST API, autentikasi, manajemen artikel, komentar, settings, upload.
-- **Database**: Drizzle ORM (PostgreSQL/SQLite).
-- **Storage**: Upload gambar artikel.
 
 ## Alur Kerja Program (Detail)
 
@@ -99,4 +126,16 @@ flowchart TD
 
 ---
 
-Silakan buka flowchart di atas dan lihat penjelasan detail di bawahnya untuk memahami alur utama aplikasi secara menyeluruh.
+<p align="center">
+  <img src="https://user-images.githubusercontent.com/placeholder/indonesianews-preview.png" alt="Preview" width="700"/>
+</p>
+
+<details>
+<summary><b>✨ Tips & Catatan</b></summary>
+
+- Gunakan Node.js versi terbaru untuk hasil optimal.
+- Pastikan environment variable sudah di-setup (lihat .env.example jika ada).
+- Untuk pengembangan, gunakan browser modern (Chrome, Edge, Firefox).
+- Fitur admin hanya bisa diakses user dengan role admin/developer.
+
+</details>
