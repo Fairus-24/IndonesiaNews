@@ -255,81 +255,39 @@ export default function AdminDashboard() {
               </Link>
             </div>
 
-            {/* Statistics Cards */}
-            <div className="grid md:grid-cols-3 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Ringkasan Konten</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Total Artikel</span>
-                      <span className="text-sm font-medium">{stats?.totalArticles || 0}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Total Komentar</span>
-                      <span className="text-sm font-medium">{stats?.totalComments || 0}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Total Suka</span>
-                      <span className="text-sm font-medium">{stats?.totalLikes || 0}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Total Bookmark</span>
-                      <span className="text-sm font-medium">{stats?.totalBookmarks || 0}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Total Pengguna</span>
-                      <span className="text-sm font-medium">{stats?.totalUsers || 0}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+            {/* Quick Access Links */}
+            <div className="grid md:grid-cols-2 gap-6">
+              <Link href="/admin/articles">
+                <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-lg font-semibold">Kelola Artikel</CardTitle>
+                    <FileText className="h-6 w-6 text-indonesia-red" />
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-bold">{stats?.totalArticles || 0} Artikel</p>
+                    <p className="text-sm text-gray-600 mt-2">Kelola semua artikel di website</p>
+                    <Button className="mt-4 bg-indonesia-red hover:bg-indonesia-red/90" size="sm">
+                      Kelola Artikel →
+                    </Button>
+                  </CardContent>
+                </Card>
+              </Link>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Interaksi Pengguna</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Total Suka</span>
-                      <span className="text-sm font-medium text-red-600">{stats?.totalLikes || 0}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Total Bookmark</span>
-                      <span className="text-sm font-medium text-purple-600">{stats?.totalBookmarks || 0}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Total Komentar</span>
-                      <span className="text-sm font-medium text-yellow-600">{stats?.totalComments || 0}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Aktivitas Sistem</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Artikel Aktif</span>
-                      <span className="text-sm font-medium text-green-600">{stats?.totalArticles || 0}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Pengguna Aktif</span>
-                      <span className="text-sm font-medium text-blue-600">{stats?.totalUsers || 0}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Total Interaksi</span>
-                      <span className="text-sm font-medium text-purple-600">{(stats?.totalLikes || 0) + (stats?.totalComments || 0) + (stats?.totalBookmarks || 0)}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <Link href="/admin/comments">
+                <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-lg font-semibold">Moderasi Komentar</CardTitle>
+                    <MessageCircle className="h-6 w-6 text-blue-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-bold">{stats?.totalComments || 0} Komentar</p>
+                    <p className="text-sm text-gray-600 mt-2">Moderasi komentar pengguna</p>
+                    <Button className="mt-4 bg-blue-600 hover:bg-blue-700" size="sm">
+                      Kelola Komentar →
+                    </Button>
+                  </CardContent>
+                </Card>
+              </Link>
             </div>
           </TabsContent>
 
