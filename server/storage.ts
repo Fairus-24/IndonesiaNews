@@ -263,7 +263,7 @@ export class DatabaseStorage implements IStorage {
         category: categories,
         likesCount: count(likes.id),
         commentsCount: count(comments.id),
-        bookmarks: count(bookmarks.id),
+        bookmarksCount: count(bookmarks.id),
       })
       .from(articles)
       .leftJoin(users, eq(articles.authorId, users.id))

@@ -10,6 +10,7 @@ import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import ArticleDetail from "@/pages/ArticleDetail";
 import Bookmarks from "@/pages/Bookmarks";
+import Settings from "./pages/Settings";
 import AdminDashboard from "@/pages/admin/Dashboard";
 import ArticleManagement from "@/pages/admin/ArticleManagement";
 import CommentModeration from "@/pages/admin/CommentModeration";
@@ -26,13 +27,14 @@ function Router() {
         <Route path="/register" component={Register} />
         <Route path="/article/:slug" component={ArticleDetail} />
         <Route path="/bookmarks" component={Bookmarks} />
+        <Route path="/settings" component={Settings} />
         <Route path="/admin" component={AdminDashboard} />
         <Route path="/admin/articles" component={ArticleManagement} />
         <Route path="/admin/comments" component={CommentModeration} />
         <Route path="/dev" component={DeveloperSettings} />
         <Route component={NotFound} />
       </Switch>
-      
+
       {/* Footer */}
       <footer className="bg-gray-900 text-white mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

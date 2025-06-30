@@ -137,10 +137,12 @@ export default function Navbar() {
                       </Link>
                     )}
                     
-                    <DropdownMenuItem>
-                      <Settings className="mr-2 h-4 w-4" />
-                      <span>Pengaturan</span>
-                    </DropdownMenuItem>
+                    <Link href="/settings">
+                      <DropdownMenuItem>
+                        <Settings className="mr-2 h-4 w-4" />
+                        <span>Pengaturan</span>
+                      </DropdownMenuItem>
+                    </Link>
                     
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={logout}>

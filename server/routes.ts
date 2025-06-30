@@ -8,6 +8,7 @@ import { z } from "zod";
 import rateLimit from "express-rate-limit";
 import cors from "cors";
 import { OAuth2Client } from "google-auth-library";
+import bcrypt from 'bcrypt';
 
 // Rate limiting
 const limiter = rateLimit({
@@ -180,7 +181,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check if user exists
       let user = await storage.getUserByEmail(googleUser.email);
-      
+
       if (!user) {
         // Create new user
         const username = googleUser.email.split("@")[0] + Math.floor(Math.random() * 1000);
@@ -197,7 +198,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Generate JWT token
       const token = generateToken(user);
-      
+
       // Redirect to frontend with token
       res.redirect(`/?token=${token}`);
     } catch (error) {
@@ -505,7 +506,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const stats = await storage.getStatistics();
       const recentArticles = await storage.getArticles(1, 5);
       const recentComments = await storage.getAllComments();
-      
+
       const systemInfo = {
         nodeVersion: process.version,
         environment: process.env.NODE_ENV || "development",
@@ -518,7 +519,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           comments: recentComments.slice(0, 5),
         }
       };
-      
+
       res.json(systemInfo);
     } catch (error) {
       res.status(500).json({ message: "Gagal mengambil informasi sistem" });
@@ -545,7 +546,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: "All systems operational",
         }
       ];
-      
+
       res.json(logs);
     } catch (error) {
       res.status(500).json({ message: "Gagal mengambil log realtime" });
@@ -606,6 +607,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Initialize data on server start
   await initializeData();
+
+  app.get("/api/user/profile", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const user = await storage.getUserById(req.user!.id);
+      if (!user) {
+        return res.status(404).json({ message: "User tidak ditemukan" });
+      }
+      res.json(user);
+    } catch (error) {
+      res.status(500).json({ message: "Gagal mengambil profil pengguna" });
+    }
+  });
+
+  app.put("/api/user/profile", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { fullName, email, currentPassword, newPassword } = req.body;
+      const userId = req.user!.id;
+
+      // Validasi input
+      if (!fullName || !email) {
+        return res.status(400).json({ message: "Nama dan email diperlukan" });
+      }
+
+      // Jika ingin mengubah password, validasi password lama
+      if (newPassword) {
+        if (!currentPassword) {
+          return res.status(400).json({ message: "Password lama diperlukan untuk mengubah password" });
+        }
+
+        const user = await storage.getUserById(userId);
+        if (!user || !(await bcrypt.compare(currentPassword, user.password))) {
+          return res.status(400).json({ message: "Password lama tidak benar" });
+        }
+      }
+
+      const updateData: any = { fullName, email };
+
+      if (newPassword) {
+        updateData.password = await hashPassword(newPassword);
+      }
+
+      await storage.updateUser(userId, updateData);
+
+      res.json({ message: "Profil berhasil diperbarui" });
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      res.status(500).json({ message: "Gagal memperbarui profil" });
+    }
+  });
+
+  app.put("/api/user/notifications", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const notifications = req.body;
+      const userId = req.user!.id;
+
+      // For now, just return success since we don't have notifications table
+      // In a real app, you'd store these preferences in a user_preferences table
+      res.json({ message: "Pengaturan notifikasi berhasil diperbarui", notifications });
+    } catch (error) {
+      console.error("Error updating notifications:", error);
+      res.status(500).json({ message: "Gagal memperbarui pengaturan notifikasi" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
