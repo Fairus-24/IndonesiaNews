@@ -1,6 +1,6 @@
 <!-- Banner / Logo / Cover -->
 <p align="center">
-  <img src="https://user-images.githubusercontent.com/placeholder/indonesianews-banner.png" alt="IndonesiaNews" width="400"/>
+  <img src="https://st5.depositphotos.com/2885805/65185/v/450/depositphotos_651857994-stock-illustration-indonesia-flat-banner-cultural-landmarks.jpg" alt="IndonesiaNews" width="400"/>
 </p>
 
 <h1 align="center">🇮🇩 IndonesiaNews</h1>
@@ -17,7 +17,7 @@
 
 1. <b>Clone repository:</b>
    ```bash
-   git clone <url-repo-anda>
+   git clone https://github.com/Fairus-24/IndonesiaNews.git
    cd IndonesiaNews
    ```
 2. <b>Install dependencies:</b>
