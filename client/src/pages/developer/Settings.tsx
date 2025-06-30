@@ -490,14 +490,14 @@ export default function DeveloperSettings() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">DATABASE_URL</span>
-                      <span className="font-medium font-mono text-sm">
-                        {showSecrets ? "postgresql://user:pass@host:5432/db" : "••••••••••••••••"}
-                      </span>
+                        <span className="font-medium font-mono text-sm ml-auto text-right w-full block">
+                        {showSecrets ? " postgresql://neondb_owner:npg_XiHCe6A9RQDp@ep-delicate-frost-a21etxv3.eu-central-1.aws.neon.tech/neondb?sslmode=require" : "••••••••••••••••"}
+                        </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">JWT_SECRET</span>
                       <span className="font-medium font-mono text-sm">
-                        {showSecrets ? "your-secret-key" : "••••••••••••••••"}
+                        {showSecrets ? "33484a848b1a2fbc" : "••••••••••••••••"}
                       </span>
                     </div>
                     <div className="flex justify-between">

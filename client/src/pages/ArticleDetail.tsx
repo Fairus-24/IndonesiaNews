@@ -1,3 +1,4 @@
+import { useSiteSettings } from "@/lib/siteSettings";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -21,6 +22,7 @@ const commentSchema = z.object({
 type CommentFormData = z.infer<typeof commentSchema>;
 
 export default function ArticleDetail() {
+  const siteSettings = useSiteSettings();
   const params = useParams();
   const { slug } = params as { slug: string };
   const { user, isAuthenticated } = useAuth();
@@ -44,16 +46,17 @@ export default function ArticleDetail() {
     },
   });
 
-  // Fetch comments
+  // Fetch comments (feature flag)
+  const commentsEnabled = siteSettings.feature_flags?.comments !== false;
   const { data: comments = [], isLoading: commentsLoading } = useQuery({
     queryKey: ["/api/articles", article?.id, "comments"],
     queryFn: async () => {
-      if (!article?.id) return [];
+      if (!article?.id || !commentsEnabled) return [];
       const response = await fetch(`/api/articles/${article.id}/comments`);
       if (!response.ok) throw new Error("Gagal memuat komentar");
       return response.json() as Promise<Comment[]>;
     },
-    enabled: !!article?.id,
+    enabled: !!article?.id && commentsEnabled,
   });
 
   // Comment form
@@ -325,40 +328,47 @@ export default function ArticleDetail() {
           </Card>
         )}
 
-        {/* Comments List */}
-        {commentsLoading ? (
-          <div className="flex justify-center">
-            <Loader2 className="h-6 w-6 animate-spin" />
-          </div>
-        ) : comments.length > 0 ? (
-          <div className="space-y-4">
-            {comments.map((comment) => (
-              <Card key={comment.id}>
-                <CardContent className="p-6">
-                  <div className="flex items-start space-x-3">
-                    <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                      <User className="h-4 w-4 text-gray-600" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <span className="font-medium text-gray-900">
-                          {comment.author.fullName}
-                        </span>
-                        <span className="text-sm text-gray-500">
-                          {formatDate(comment.createdAt)}
-                        </span>
+        {/* Comments List (feature flag) */}
+        {commentsEnabled ? (
+          commentsLoading ? (
+            <div className="flex justify-center">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          ) : comments.length > 0 ? (
+            <div className="space-y-4">
+              {comments.map((comment) => (
+                <Card key={comment.id}>
+                  <CardContent className="p-6">
+                    <div className="flex items-start space-x-3">
+                      <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                        <User className="h-4 w-4 text-gray-600" />
                       </div>
-                      <p className="text-gray-700">{comment.content}</p>
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <span className="font-medium text-gray-900">
+                            {comment.author.fullName}
+                          </span>
+                          <span className="text-sm text-gray-500">
+                            {formatDate(comment.createdAt)}
+                          </span>
+                        </div>
+                        <p className="text-gray-700">{comment.content}</p>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <MessageCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">Belum ada komentar untuk artikel ini</p>
+            </div>
+          )
         ) : (
           <div className="text-center py-8">
             <MessageCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600">Belum ada komentar untuk artikel ini</p>
+            <p className="text-gray-600">Komentar dinonaktifkan oleh admin</p>
           </div>
         )}
       </section>

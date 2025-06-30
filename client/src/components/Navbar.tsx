@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSiteSettings } from "@/lib/siteSettings";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ import {
 } from "lucide-react";
 
 export default function Navbar() {
+  const siteSettings = useSiteSettings();
   const [location] = useLocation();
   const { user, logout, isAuthenticated } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
@@ -75,11 +77,15 @@ export default function Navbar() {
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
             <div className="w-10 h-10 bg-indonesia-red rounded-lg flex items-center justify-center">
-              <Newspaper className="text-white text-xl" />
+              {siteSettings.site_icon ? (
+                <img src={siteSettings.site_icon} alt="icon" className="w-8 h-8 rounded" />
+              ) : (
+                <Newspaper className="text-white text-xl" />
+              )}
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Semua Tentang Indonesia</h1>
-              <p className="text-xs text-gray-500">Portal Berita Terpercaya</p>
+              <h1 className="text-xl font-bold text-gray-900">{siteSettings.site_name || "Semua Tentang Indonesia"}</h1>
+              <p className="text-xs text-gray-500">{siteSettings.site_description || "Portal Berita Terpercaya"}</p>
             </div>
           </Link>
 
