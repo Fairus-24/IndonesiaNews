@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -58,23 +58,64 @@ export default function Settings() {
     commentNotifications: true
   });
 
+  // Fetch user profile data
+  const { data: userProfile } = useQuery({
+    queryKey: ["/api/user/profile"],
+    queryFn: async () => {
+      const response = await fetch("/api/user/profile", {
+        credentials: "include",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+        },
+      });
+      if (!response.ok) throw new Error("Failed to fetch profile");
+      return response.json();
+    },
+    enabled: !!user?.id,
+  });
+
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      fullName: user?.fullName || "",
-      email: user?.email || "",
+      fullName: "",
+      email: "",
       currentPassword: "",
       newPassword: "",
       confirmPassword: "",
     },
   });
 
+  // Update form when user profile data is loaded
+  React.useEffect(() => {
+    if (userProfile) {
+      form.reset({
+        fullName: userProfile.fullName || "",
+        email: userProfile.email || "",
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+    }
+  }, [userProfile, form]);
+
   const updateProfileMutation = useMutation({
     mutationFn: async (data: Partial<ProfileFormData>) => {
-      return apiRequest("/api/user/profile", {
+      const response = await fetch("/api/user/profile", {
         method: "PUT",
-        body: data,
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+        },
+        body: JSON.stringify(data),
       });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to update profile");
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
       toast({
@@ -101,10 +142,22 @@ export default function Settings() {
 
   const updateNotificationsMutation = useMutation({
     mutationFn: async (data: typeof notifications) => {
-      return apiRequest("/api/user/notifications", {
+      const response = await fetch("/api/user/notifications", {
         method: "PUT",
-        body: data,
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+        },
+        body: JSON.stringify(data),
       });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to update notifications");
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
       toast({
@@ -364,8 +417,10 @@ export default function Settings() {
                 <div>
                   <h4 className="font-medium mb-2">Informasi Akun</h4>
                   <div className="space-y-2 text-sm">
-                    <p><span className="font-medium">Role:</span> {user?.role}</p>
-                    <p><span className="font-medium">Tanggal Daftar:</span> {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('id-ID') : '-'}</p>
+                    <p><span className="font-medium">Username:</span> {userProfile?.username || user?.username || '-'}</p>
+                    <p><span className="font-medium">Role:</span> {userProfile?.role || user?.role || '-'}</p>
+                    <p><span className="font-medium">Tanggal Daftar:</span> {userProfile?.createdAt ? new Date(userProfile.createdAt).toLocaleDateString('id-ID') : '-'}</p>
+                    <p><span className="font-medium">Status:</span> <span className="text-green-600">Aktif</span></p>
                   </div>
                 </div>
               </CardContent>

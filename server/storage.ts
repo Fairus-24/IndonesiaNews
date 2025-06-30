@@ -62,6 +62,8 @@ export interface IStorage {
   deleteComment(id: number): Promise<void>;
   getPendingComments(): Promise<CommentWithAuthor[]>;
   getAllComments(): Promise<CommentWithAuthor[]>;
+  getUserById(id: number): Promise<User | null>;
+  updateUser(id: number, updates: Partial<InsertUser>): Promise<User>;
 
   // Like methods
   toggleLike(userId: number, articleId: number): Promise<boolean>;
@@ -356,6 +358,20 @@ export class DatabaseStorage implements IStorage {
       ...row.comment,
       author: row.author!,
     }));
+  }
+
+  async getUserById(id: number): Promise<User | null> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || null;
+  }
+
+  async updateUser(id: number, updates: Partial<InsertUser>): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set(updates)
+      .where(eq(users.id, id))
+      .returning();
+    return user;
   }
 
   async getPendingComments(): Promise<CommentWithAuthor[]> {
