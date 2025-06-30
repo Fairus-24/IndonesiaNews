@@ -10,6 +10,7 @@ import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import ArticleDetail from "@/pages/ArticleDetail";
 import Bookmarks from "@/pages/Bookmarks";
+import CategoryPage from "@/pages/Category";
 import Settings from "./pages/Settings";
 import AdminDashboard from "@/pages/admin/Dashboard";
 import ArticleManagement from "@/pages/admin/ArticleManagement";
@@ -28,6 +29,9 @@ function Router() {
           <Route path="/register" component={Register} />
           <Route path="/article/:slug" component={ArticleDetail} />
           <Route path="/bookmarks" component={Bookmarks} />
+          <Route path="/category/:categorySlug">
+            {(params) => <CategoryPage categorySlug={params.categorySlug} />}
+          </Route>
           <Route path="/settings" component={Settings} />
           <Route path="/admin" component={AdminDashboard} />
           <Route path="/admin/articles" component={ArticleManagement} />

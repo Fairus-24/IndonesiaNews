@@ -1,28 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
-import { isAdmin, isDeveloper } from "@/lib/auth";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { 
   Newspaper, 
   Search, 
-  Bookmark, 
-  Menu, 
   User, 
   Settings, 
-  LogOut,
-  BarChart3,
-  Code
+  LogOut, 
+  Menu, 
+  X,
+  Shield,
+  Bookmark,
+  Wrench
 } from "lucide-react";
 
 export default function Navbar() {
@@ -101,7 +93,7 @@ export default function Navbar() {
                     <Bookmark className="h-4 w-4" />
                   </Button>
                 </Link>
-                
+
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="relative h-8 w-8 rounded-full">
@@ -118,7 +110,7 @@ export default function Navbar() {
                       <span>{user?.fullName}</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    
+
                     {isAdmin() && (
                       <Link href="/admin">
                         <DropdownMenuItem>
@@ -127,7 +119,7 @@ export default function Navbar() {
                         </DropdownMenuItem>
                       </Link>
                     )}
-                    
+
                     {isDeveloper() && (
                       <Link href="/dev">
                         <DropdownMenuItem>
@@ -136,14 +128,14 @@ export default function Navbar() {
                         </DropdownMenuItem>
                       </Link>
                     )}
-                    
+
                     <Link href="/settings">
                       <DropdownMenuItem>
                         <Settings className="mr-2 h-4 w-4" />
                         <span>Pengaturan</span>
                       </DropdownMenuItem>
                     </Link>
-                    
+
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={logout}>
                       <LogOut className="mr-2 h-4 w-4" />
