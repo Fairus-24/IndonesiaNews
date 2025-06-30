@@ -19,6 +19,7 @@ import ArticleManagement from "@/pages/admin/ArticleManagement";
 import CommentModeration from "@/pages/admin/CommentModeration";
 import DeveloperSettings from "@/pages/developer/Settings";
 import NotFound from "@/pages/not-found";
+import SearchPage from "@/pages/search";
 
 function Router() {
   return (
@@ -34,13 +35,16 @@ function Router() {
               <Route path="/article/:slug" component={ArticleDetail} />
               <Route path="/bookmarks" component={Bookmarks} />
               <Route path="/category/:categorySlug">
-                {(params) => <CategoryPage categorySlug={params.categorySlug} />}
+                {(params) => (
+                  <CategoryPage categorySlug={params.categorySlug} />
+                )}
               </Route>
               <Route path="/settings" component={Settings} />
               <Route path="/admin" component={AdminDashboard} />
               <Route path="/admin/articles" component={ArticleManagement} />
               <Route path="/admin/comments" component={CommentModeration} />
               <Route path="/dev" component={DeveloperSettings} />
+              <Route path="/search" component={SearchPage} />
               <Route component={NotFound} />
             </Switch>
           </div>

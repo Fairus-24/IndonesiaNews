@@ -12,11 +12,11 @@ export default function Home() {
   const [location] = useLocation();
   const [page, setPage] = useState(1);
   const [articles, setArticles] = useState<Article[]>([]);
-  
+
   // Parse URL parameters
-  const urlParams = new URLSearchParams(location.split('?')[1] || '');
-  const category = urlParams.get('category');
-  const search = urlParams.get('search');
+  const urlParams = new URLSearchParams(location.split("?")[1] || "");
+  const category = urlParams.get("category");
+  const search = urlParams.get("search");
 
   // Reset page when filters change
   useEffect(() => {
@@ -35,7 +35,7 @@ export default function Home() {
         ...(category && { category }),
         ...(search && { search }),
       });
-      
+
       const response = await fetch(`/api/articles?${params}`);
       if (!response.ok) throw new Error("Failed to fetch articles");
       return response.json();
@@ -58,17 +58,16 @@ export default function Home() {
       if (page === 1) {
         setArticles(articlesResponse.articles);
       } else {
-        setArticles(prev => [...prev, ...articlesResponse.articles]);
+        setArticles((prev) => [...prev, ...articlesResponse.articles]);
       }
     }
   }, [articlesResponse, page]);
 
   const loadMore = () => {
-    setPage(prev => prev + 1);
+    setPage((prev) => prev + 1);
   };
 
-  const hasMore = articlesResponse ? 
-    page * 10 < articlesResponse.total : false;
+  const hasMore = articlesResponse ? page * 10 < articlesResponse.total : false;
 
   // Featured slider state
   const [featuredIndex, setFeaturedIndex] = useState(0);
@@ -106,38 +105,46 @@ export default function Home() {
           <div className="flex-1 overflow-hidden">
             <div
               className="whitespace-nowrap animate-marquee"
-              style={{ animation: "marquee 15s linear infinite" }}
+              style={{ animation: "marquee 90s linear infinite" }}
             >
-              {featuredArticles[0].excerpt || featuredArticles[0].description || "Tetap update dengan berita terbaru seputar Indonesia"}
+              {`${
+                featuredArticles[0].excerpt ||
+                featuredArticles[0].description ||
+                "Tetap update dengan berita terbaru seputar Indonesia"
+              }     `}
             </div>
           </div>
           <style>
             {`
               @keyframes marquee {
-                0% { transform: translateX(100%); }
+                0% { transform: translateX(0); }
                 100% { transform: translateX(-100%); }
               }
               .animate-marquee {
                 display: inline-block;
-          min-width: 100%;
-          }
-        `}
-        </style>
-      </div>
+                min-width: 100%;
+              }
+            `}
+          </style>
+        </div>
       )}
 
       {/* Search/Filter Header */}
       {(search || category) && (
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">
-        {search ? `Hasil pencarian: "${search}"` : 
-         category ? `Kategori: ${category.charAt(0).toUpperCase() + category.slice(1)}` : 
-         "Semua Berita"}
-        </h1>
-        <p className="text-gray-600">
-        {articlesResponse?.total || 0} artikel ditemukan
-        </p>
-      </div>
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            {search
+              ? `Hasil pencarian: "${search}"`
+              : category
+              ? `Kategori: ${
+                  category.charAt(0).toUpperCase() + category.slice(1)
+                }`
+              : "Semua Berita"}
+          </h1>
+          <p className="text-gray-600">
+            {articlesResponse?.total || 0} artikel ditemukan
+          </p>
+        </div>
       )}
 
       {/* Hero Section: Featured Slider + Berita Populer */}
@@ -148,9 +155,17 @@ export default function Home() {
             <div className="lg:col-span-2">
               <div className="relative w-full">
                 <div className="overflow-hidden rounded-lg shadow-lg">
-                  <div className="flex transition-transform duration-700" style={{ transform: `translateX(-${featuredIndex * 100}%)` }}>
+                  <div
+                    className="flex transition-transform duration-700"
+                    style={{
+                      transform: `translateX(-${featuredIndex * 100}%)`,
+                    }}
+                  >
                     {featuredArticles.map((article) => (
-                      <div key={article.id} className="min-w-full relative h-72 sm:h-96">
+                      <div
+                        key={article.id}
+                        className="min-w-full relative h-72 sm:h-96"
+                      >
                         {/* Gambar Full Card */}
                         {article.coverImage && (
                           <img
@@ -180,7 +195,11 @@ export default function Home() {
                   {featuredArticles.map((_, idx) => (
                     <button
                       key={idx}
-                      className={`w-3 h-3 rounded-full ${idx === featuredIndex ? 'bg-indonesia-red' : 'bg-gray-300'}`}
+                      className={`w-3 h-3 rounded-full ${
+                        idx === featuredIndex
+                          ? "bg-indonesia-red"
+                          : "bg-gray-300"
+                      }`}
                       onClick={() => setFeaturedIndex(idx)}
                       aria-label={`Slide ${idx + 1}`}
                     />
@@ -196,13 +215,13 @@ export default function Home() {
               {articles.slice(3, 6).map((article: Article) => (
                 <Card key={article.id} className="group cursor-pointer">
                   <CardContent className="p-4">
-                    {article.coverImage && (
+                    {/* {article.coverImage && (
                       <img
                         src={article.coverImage}
                         alt={article.title}
                         className="w-full h-32 object-cover rounded-lg mb-3 group-hover:opacity-90 transition-opacity"
                       />
-                    )}
+                    )} */}
                     <div className="flex items-center space-x-2 mb-2">
                       <Badge
                         style={{ backgroundColor: article.category.color }}
@@ -211,7 +230,9 @@ export default function Home() {
                         {article.category.name}
                       </Badge>
                       <span className="text-gray-500 text-xs">
-                        {new Date(article.publishedAt || article.createdAt).toLocaleDateString("id-ID")}
+                        {new Date(
+                          article.publishedAt || article.createdAt
+                        ).toLocaleDateString("id-ID")}
                       </span>
                     </div>
                     <h4 className="font-semibold text-gray-900 group-hover:text-indonesia-red transition-colors mb-2 line-clamp-2">
@@ -230,75 +251,89 @@ export default function Home() {
 
       {/* Category Filter Tabs */}
       {!search && categories && (
-      <section className="mb-8">
-        <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">
-          {category ? `Berita ${category.charAt(0).toUpperCase() + category.slice(1)}` : "Berita Terbaru"}
-        </h2>
-        <div className="flex flex-wrap gap-2">
-          <Button
-          variant={!category ? "default" : "outline"}
-          size="sm"
-          onClick={() => window.location.href = "/"}
-          className={!category ? "bg-indonesia-red hover:bg-indonesia-red/90" : ""}
-          >
-          Semua
-          </Button>
-          {categories.map((cat: Category) => (
-          <Button
-            key={cat.id}
-            variant={category === cat.slug ? "default" : "outline"}
-            size="sm"
-            onClick={() => window.location.href = `/category/${cat.slug}`}
-            className={category === cat.slug ? "bg-indonesia-red hover:bg-indonesia-red/90" : ""}
-          >
-            {cat.name}
-          </Button>
-          ))}
-        </div>
-        </div>
-      </section>
+        <section className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-gray-900">
+              {category
+                ? `Berita ${
+                    category.charAt(0).toUpperCase() + category.slice(1)
+                  }`
+                : "Berita Terbaru"}
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={!category ? "default" : "outline"}
+                size="sm"
+                onClick={() => (window.location.href = "/")}
+                className={
+                  !category ? "bg-indonesia-red hover:bg-indonesia-red/90" : ""
+                }
+              >
+                Semua
+              </Button>
+              {categories.map((cat: Category) => (
+                <Button
+                  key={cat.id}
+                  variant={category === cat.slug ? "default" : "outline"}
+                  size="sm"
+                  onClick={() =>
+                    (window.location.href = `/category/${cat.slug}`)
+                  }
+                  className={
+                    category === cat.slug
+                      ? "bg-indonesia-red hover:bg-indonesia-red/90"
+                      : ""
+                  }
+                >
+                  {cat.name}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </section>
       )}
 
       {/* Articles Grid */}
       <section>
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-        {articles.map((article: Article) => (
-          <ArticleCard key={article.id} article={article} />
-        ))}
-      </div>
-
-      {/* Load More Button */}
-      {hasMore && (
-        <div className="text-center">
-        <Button
-          onClick={loadMore}
-          disabled={articlesLoading}
-          variant="outline"
-          size="lg"
-        >
-          {articlesLoading ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Memuat...
-          </>
-          ) : (
-          "Muat Lebih Banyak Berita"
-          )}
-        </Button>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+          {articles.map((article: Article) => (
+            <ArticleCard key={article.id} article={article} />
+          ))}
         </div>
-      )}
 
-      {/* No Results */}
-      {articles.length === 0 && !articlesLoading && (
-        <div className="text-center py-12">
-        <p className="text-gray-600 text-lg">
-          {search ? "Tidak ada artikel yang ditemukan untuk pencarian ini." :
-           category ? "Tidak ada artikel dalam kategori ini." :
-           "Belum ada artikel yang dipublikasikan."}
-        </p>
-        </div>
-      )}
+        {/* Load More Button */}
+        {hasMore && (
+          <div className="text-center">
+            <Button
+              onClick={loadMore}
+              disabled={articlesLoading}
+              variant="outline"
+              size="lg"
+            >
+              {articlesLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Memuat...
+                </>
+              ) : (
+                "Muat Lebih Banyak Berita"
+              )}
+            </Button>
+          </div>
+        )}
+
+        {/* No Results */}
+        {articles.length === 0 && !articlesLoading && (
+          <div className="text-center py-12">
+            <p className="text-gray-600 text-lg">
+              {search
+                ? "Tidak ada artikel yang ditemukan untuk pencarian ini."
+                : category
+                ? "Tidak ada artikel dalam kategori ini."
+                : "Belum ada artikel yang dipublikasikan."}
+            </p>
+          </div>
+        )}
       </section>
     </main>
   );

@@ -38,7 +38,10 @@ export interface IStorage {
   getCategories(): Promise<Category[]>;
   getCategoryBySlug(slug: string): Promise<Category | undefined>;
   createCategory(category: InsertCategory): Promise<Category>;
-  updateCategory(id: number, updates: Partial<InsertCategory>): Promise<Category>;
+  updateCategory(
+    id: number,
+    updates: Partial<InsertCategory>
+  ): Promise<Category>;
   deleteCategory(id: number): Promise<void>;
 
   // Article methods
@@ -71,7 +74,11 @@ export interface IStorage {
 
   // Bookmark methods
   toggleBookmark(userId: number, articleId: number): Promise<boolean>;
-  getUserBookmarks(userId: number, page: number, limit: number): Promise<{ bookmarks: ArticleWithDetails[]; total: number }>;
+  getUserBookmarks(
+    userId: number,
+    page: number,
+    limit: number
+  ): Promise<{ bookmarks: ArticleWithDetails[]; total: number }>;
 
   // Site settings methods
   getSiteSetting(key: string): Promise<SiteSetting | undefined>;
@@ -96,7 +103,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.username, username));
     return user || undefined;
   }
 
@@ -124,16 +134,25 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCategoryBySlug(slug: string): Promise<Category | undefined> {
-    const [category] = await db.select().from(categories).where(eq(categories.slug, slug));
+    const [category] = await db
+      .select()
+      .from(categories)
+      .where(eq(categories.slug, slug));
     return category || undefined;
   }
 
   async createCategory(insertCategory: InsertCategory): Promise<Category> {
-    const [category] = await db.insert(categories).values(insertCategory).returning();
+    const [category] = await db
+      .insert(categories)
+      .values(insertCategory)
+      .returning();
     return category;
   }
 
-  async updateCategory(id: number, updates: Partial<InsertCategory>): Promise<Category> {
+  async updateCategory(
+    id: number,
+    updates: Partial<InsertCategory>
+  ): Promise<Category> {
     const [category] = await db
       .update(categories)
       .set(updates)
@@ -167,16 +186,18 @@ export class DatabaseStorage implements IStorage {
     }
 
     if (search) {
+      const searchLower = search.toLowerCase();
       whereConditions.push(
         or(
-          like(articles.title, `%${search}%`),
-          like(articles.content, `%${search}%`),
-          like(articles.excerpt, `%${search}%`)
+          sql`LOWER(${articles.title}) LIKE ${"%" + searchLower + "%"}`,
+          sql`LOWER(${articles.content}) LIKE ${"%" + searchLower + "%"}`,
+          sql`LOWER(${articles.excerpt}) LIKE ${"%" + searchLower + "%"}`
         )
       );
     }
 
-    const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
+    const whereClause =
+      whereConditions.length > 0 ? and(...whereConditions) : undefined;
 
     const [articlesResult, totalResult] = await Promise.all([
       db
@@ -192,7 +213,13 @@ export class DatabaseStorage implements IStorage {
         .leftJoin(users, eq(articles.authorId, users.id))
         .leftJoin(categories, eq(articles.categoryId, categories.id))
         .leftJoin(likes, eq(articles.id, likes.articleId))
-        .leftJoin(comments, and(eq(articles.id, comments.articleId), eq(comments.isApproved, true)))
+        .leftJoin(
+          comments,
+          and(
+            eq(articles.id, comments.articleId),
+            eq(comments.isApproved, true)
+          )
+        )
         .leftJoin(bookmarks, eq(articles.id, bookmarks.articleId))
         .where(whereClause)
         .groupBy(articles.id, users.id, categories.id)
@@ -200,22 +227,21 @@ export class DatabaseStorage implements IStorage {
         .limit(limit)
         .offset((page - 1) * limit),
 
-      db
-        .select({ count: count() })
-        .from(articles)
-        .where(whereClause)
+      db.select({ count: count() }).from(articles).where(whereClause),
     ]);
 
-    const articlesWithDetails: ArticleWithDetails[] = articlesResult.map((row) => ({
-      ...row.article,
-      author: row.author!,
-      category: row.category!,
-      _count: {
-        likes: Number(row.likesCount) || 0,
-        comments: Number(row.commentsCount) || 0,
-        bookmarks: Number(row.bookmarksCount) || 0,
-      },
-    }));
+    const articlesWithDetails: ArticleWithDetails[] = articlesResult.map(
+      (row) => ({
+        ...row.article,
+        author: row.author!,
+        category: row.category!,
+        _count: {
+          likes: Number(row.likesCount) || 0,
+          comments: Number(row.commentsCount) || 0,
+          bookmarks: Number(row.bookmarksCount) || 0,
+        },
+      })
+    );
 
     return {
       articles: articlesWithDetails,
@@ -237,7 +263,10 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(users, eq(articles.authorId, users.id))
       .leftJoin(categories, eq(articles.categoryId, categories.id))
       .leftJoin(likes, eq(articles.id, likes.articleId))
-      .leftJoin(comments, and(eq(articles.id, comments.articleId), eq(comments.isApproved, true)))
+      .leftJoin(
+        comments,
+        and(eq(articles.id, comments.articleId), eq(comments.isApproved, true))
+      )
       .leftJoin(bookmarks, eq(articles.id, bookmarks.articleId))
       .where(eq(articles.id, id))
       .groupBy(articles.id, users.id, categories.id);
@@ -257,7 +286,9 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  async getArticleBySlug(slug: string): Promise<ArticleWithDetails | undefined> {
+  async getArticleBySlug(
+    slug: string
+  ): Promise<ArticleWithDetails | undefined> {
     const result = await db
       .select({
         article: articles,
@@ -271,7 +302,10 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(users, eq(articles.authorId, users.id))
       .leftJoin(categories, eq(articles.categoryId, categories.id))
       .leftJoin(likes, eq(articles.id, likes.articleId))
-      .leftJoin(comments, and(eq(articles.id, comments.articleId), eq(comments.isApproved, true)))
+      .leftJoin(
+        comments,
+        and(eq(articles.id, comments.articleId), eq(comments.isApproved, true))
+      )
       .leftJoin(bookmarks, eq(articles.id, bookmarks.articleId))
       .where(eq(articles.slug, slug))
       .groupBy(articles.id, users.id, categories.id);
@@ -292,11 +326,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createArticle(insertArticle: InsertArticle): Promise<Article> {
-    const [article] = await db.insert(articles).values(insertArticle).returning();
+    const [article] = await db
+      .insert(articles)
+      .values(insertArticle)
+      .returning();
     return article;
   }
 
-  async updateArticle(id: number, updates: Partial<InsertArticle>): Promise<Article> {
+  async updateArticle(
+    id: number,
+    updates: Partial<InsertArticle>
+  ): Promise<Article> {
     const [article] = await db
       .update(articles)
       .set({ ...updates, updatedAt: new Date() })
@@ -309,7 +349,9 @@ export class DatabaseStorage implements IStorage {
     await db.delete(articles).where(eq(articles.id, id));
   }
 
-  async getCommentsByArticleId(articleId: number): Promise<CommentWithAuthor[]> {
+  async getCommentsByArticleId(
+    articleId: number
+  ): Promise<CommentWithAuthor[]> {
     const result = await db
       .select({
         comment: comments,
@@ -317,7 +359,9 @@ export class DatabaseStorage implements IStorage {
       })
       .from(comments)
       .leftJoin(users, eq(comments.authorId, users.id))
-      .where(and(eq(comments.articleId, articleId), eq(comments.isApproved, true)))
+      .where(
+        and(eq(comments.articleId, articleId), eq(comments.isApproved, true))
+      )
       .orderBy(desc(comments.createdAt));
 
     return result.map((row) => ({
@@ -329,21 +373,40 @@ export class DatabaseStorage implements IStorage {
   async createComment(insertComment: InsertComment): Promise<Comment> {
     // Daftar kata buruk/kasar/umum (bisa dikembangkan)
     const badWords = [
-      'anjing', 'babi', 'bangsat', 'kontol', 'memek', 'asu', 'goblok', 'tolol', 'idiot', 'bodoh', 'kampret',
-      'fuck', 'shit', 'bitch', 'bastard', 'dick', 'pussy', 'asshole', 'faggot', 'cunt', 'ngentot', 'pepek',
+      "anjing",
+      "babi",
+      "bangsat",
+      "kontol",
+      "memek",
+      "asu",
+      "goblok",
+      "tolol",
+      "idiot",
+      "bodoh",
+      "kampret",
+      "fuck",
+      "shit",
+      "bitch",
+      "bastard",
+      "dick",
+      "pussy",
+      "asshole",
+      "faggot",
+      "cunt",
+      "ngentot",
+      "pepek",
       // ... tambahkan kata lain sesuai kebutuhan
     ];
 
     // Deteksi kata buruk/kasar
     const content = insertComment.content.toLowerCase();
-    const hasBadWord = badWords.some(word => content.includes(word));
+    const hasBadWord = badWords.some((word) => content.includes(word));
 
     // Deteksi komentar robot/spam sederhana (bisa dikembangkan)
-    const isLikelyBot = (
+    const isLikelyBot =
       /http(s)?:\/\//.test(content) || // ada link
       content.length < 5 || // terlalu pendek
-      /[a-zA-Z0-9]{30,}/.test(content) // string acak panjang
-    );
+      /[a-zA-Z0-9]{30,}/.test(content); // string acak panjang
 
     // Otomatisasi moderasi
     let isApproved = false;
@@ -351,14 +414,20 @@ export class DatabaseStorage implements IStorage {
       isApproved = true;
     }
 
-    const [comment] = await db.insert(comments).values({
-      ...insertComment,
-      isApproved,
-    }).returning();
+    const [comment] = await db
+      .insert(comments)
+      .values({
+        ...insertComment,
+        isApproved,
+      })
+      .returning();
     return comment;
   }
 
-  async updateComment(id: number, updates: Partial<InsertComment>): Promise<Comment> {
+  async updateComment(
+    id: number,
+    updates: Partial<InsertComment>
+  ): Promise<Comment> {
     const [comment] = await db
       .update(comments)
       .set({ ...updates, updatedAt: new Date() })
@@ -434,7 +503,9 @@ export class DatabaseStorage implements IStorage {
     const [existingBookmark] = await db
       .select()
       .from(bookmarks)
-      .where(and(eq(bookmarks.userId, userId), eq(bookmarks.articleId, articleId)));
+      .where(
+        and(eq(bookmarks.userId, userId), eq(bookmarks.articleId, articleId))
+      );
 
     if (existingBookmark) {
       await db.delete(bookmarks).where(eq(bookmarks.id, existingBookmark.id));
@@ -445,7 +516,11 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getUserBookmarks(userId: number, page: number = 1, limit: number = 10): Promise<{ bookmarks: ArticleWithDetails[]; total: number }> {
+  async getUserBookmarks(
+    userId: number,
+    page: number = 1,
+    limit: number = 10
+  ): Promise<{ bookmarks: ArticleWithDetails[]; total: number }> {
     const [bookmarksResult, totalResult] = await Promise.all([
       db
         .select({
@@ -461,7 +536,13 @@ export class DatabaseStorage implements IStorage {
         .leftJoin(users, eq(articles.authorId, users.id))
         .leftJoin(categories, eq(articles.categoryId, categories.id))
         .leftJoin(likes, eq(articles.id, likes.articleId))
-        .leftJoin(comments, and(eq(articles.id, comments.articleId), eq(comments.isApproved, true)))
+        .leftJoin(
+          comments,
+          and(
+            eq(articles.id, comments.articleId),
+            eq(comments.isApproved, true)
+          )
+        )
         .where(eq(bookmarks.userId, userId))
         .groupBy(articles.id, users.id, categories.id, bookmarks.id)
         .orderBy(desc(bookmarks.createdAt))
@@ -471,19 +552,21 @@ export class DatabaseStorage implements IStorage {
       db
         .select({ count: count() })
         .from(bookmarks)
-        .where(eq(bookmarks.userId, userId))
+        .where(eq(bookmarks.userId, userId)),
     ]);
 
-    const bookmarksWithDetails: ArticleWithDetails[] = bookmarksResult.map((row) => ({
-      ...row.article!,
-      author: row.author!,
-      category: row.category!,
-      _count: {
-        likes: Number(row.likesCount) || 0,
-        comments: Number(row.commentsCount) || 0,
-        bookmarks: Number(row.bookmarksCount) || 0,
-      },
-    }));
+    const bookmarksWithDetails: ArticleWithDetails[] = bookmarksResult.map(
+      (row) => ({
+        ...row.article!,
+        author: row.author!,
+        category: row.category!,
+        _count: {
+          likes: Number(row.likesCount) || 0,
+          comments: Number(row.commentsCount) || 0,
+          bookmarks: Number(row.bookmarksCount) || 0,
+        },
+      })
+    );
 
     return {
       bookmarks: bookmarksWithDetails,
@@ -492,7 +575,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getSiteSetting(key: string): Promise<SiteSetting | undefined> {
-    const [setting] = await db.select().from(siteSettings).where(eq(siteSettings.key, key));
+    const [setting] = await db
+      .select()
+      .from(siteSettings)
+      .where(eq(siteSettings.key, key));
     return setting || undefined;
   }
 
@@ -507,10 +593,10 @@ export class DatabaseStorage implements IStorage {
       // Update existing setting
       const result = await db
         .update(siteSettings)
-        .set({ 
-          value: data.value, 
+        .set({
+          value: data.value,
           description: data.description,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(siteSettings.key, data.key))
         .returning();
@@ -537,7 +623,9 @@ export class DatabaseStorage implements IStorage {
     const [usersCount] = await db.select({ count: count() }).from(users);
     const [commentsCount] = await db.select({ count: count() }).from(comments);
     const [likesCount] = await db.select({ count: count() }).from(likes);
-    const [bookmarksCount] = await db.select({ count: count() }).from(bookmarks);
+    const [bookmarksCount] = await db
+      .select({ count: count() })
+      .from(bookmarks);
 
     return {
       totalArticles: Number(articlesCount.count) || 0,
