@@ -16,6 +16,7 @@ export interface Category {
 }
 
 export interface Article {
+  description: string;
   id: number;
   title: string;
   slug: string;

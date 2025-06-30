@@ -47,28 +47,7 @@ export default function Navbar() {
     }
   };
 
-  // Get current URL params to check active state
-  const urlParams = new URLSearchParams(window.location.search);
-  const currentCategory = urlParams.get('category');
-  
-  const categories = [
-    { name: "Beranda", href: "/", active: location === "/" && !currentCategory },
-    { name: "Nasional", href: "/?category=nasional", active: currentCategory === "nasional" },
-    { name: "Ekonomi", href: "/?category=ekonomi", active: currentCategory === "ekonomi" },
-    { name: "Olahraga", href: "/?category=olahraga", active: currentCategory === "olahraga" },
-    { name: "Teknologi", href: "/?category=teknologi", active: currentCategory === "teknologi" },
-    { name: "Budaya", href: "/?category=budaya", active: currentCategory === "budaya" },
-  ];
 
-  const handleCategoryClick = (category: string) => {
-    if (category === "Beranda") {
-      setLocation("/");
-    } else {
-      setLocation(`/?category=${category.toLowerCase()}`);
-    }
-    // Close mobile menu after navigation
-    setIsMobileMenuOpen(false);
-  };
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
@@ -89,22 +68,7 @@ export default function Navbar() {
             </div>
           </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
-            {categories.map((category) => (
-              <button
-                key={category.name}
-                onClick={() => handleCategoryClick(category.name)}
-                className={`transition-colors pb-1 cursor-pointer ${
-                  category.active 
-                    ? "text-indonesia-red font-medium border-b-2 border-indonesia-red" 
-                    : "text-gray-600 hover:text-indonesia-red"
-                }`}
-              >
-                {category.name}
-              </button>
-            ))}
-          </div>
+
 
           {/* User Actions */}
           <div className="flex items-center space-x-4">
@@ -219,22 +183,7 @@ export default function Navbar() {
                     </button>
                   </form>
 
-                  {/* Mobile Navigation */}
-                  <div className="space-y-2">
-                    {categories.map((category) => (
-                      <button
-                        key={category.name}
-                        onClick={() => handleCategoryClick(category.name)}
-                        className={`w-full text-left block px-3 py-2 rounded-lg transition-colors ${
-                          category.active
-                            ? "text-indonesia-red font-medium bg-red-50"
-                            : "text-gray-600 hover:bg-gray-50"
-                        }`}
-                      >
-                        {category.name}
-                      </button>
-                    ))}
-                  </div>
+
                 </div>
               </SheetContent>
             </Sheet>
