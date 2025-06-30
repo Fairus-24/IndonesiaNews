@@ -1,0 +1,36 @@
+Uncaught ReferenceError: Sheet is not defined
+    at Navbar (Navbar.tsx:163:14)
+    at renderWithHooks (react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (react-dom.development.js:20103:13)
+    at beginWork (react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback2 (react-dom.development.js:4164:14)
+    at Object.invokeGuardedCallbackDev (react-dom.development.js:4213:16)
+    at invokeGuardedCallback (react-dom.development.js:4277:31)
+    at beginWork$1 (react-dom.development.js:27490:7)
+    at performUnitOfWork (react-dom.development.js:26596:12)
+    at workLoopSync (react-dom.development.js:26505:5)
+react-dom.development.js:18704  The above error occurred in the <Navbar> component:
+
+    at Navbar (https://a191aa79-be11-4a7d-bc21-1fb67fbe13a1-00-1wr5h02ta6d2.spock.replit.dev/src/components/Navbar.tsx:34:22)
+    at div
+    at AuthProvider (https://a191aa79-be11-4a7d-bc21-1fb67fbe13a1-00-1wr5h02ta6d2.spock.replit.dev/src/hooks/useAuth.tsx:23:32)
+    at Router
+    at Provider (https://a191aa79-be11-4a7d-bc21-1fb67fbe13a1-00-1wr5h02ta6d2.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-VJRUVGTI.js?v=60b2243d:38:15)
+    at TooltipProvider (https://a191aa79-be11-4a7d-bc21-1fb67fbe13a1-00-1wr5h02ta6d2.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=60b2243d:61:5)
+    at QueryClientProvider (https://a191aa79-be11-4a7d-bc21-1fb67fbe13a1-00-1wr5h02ta6d2.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=60b2243d:2805:3)
+    at App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+logCapturedError @ react-dom.development.js:18704
+react-dom.development.js:26962  Uncaught ReferenceError: Sheet is not defined
+    at Navbar (Navbar.tsx:163:14)
+    at renderWithHooks (react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (react-dom.development.js:20103:13)
+    at beginWork (react-dom.development.js:21626:16)
+    at beginWork$1 (react-dom.development.js:27465:14)
+    at performUnitOfWork (react-dom.development.js:26596:12)
+    at workLoopSync (react-dom.development.js:26505:5)
+    at renderRootSync (react-dom.development.js:26473:7)
+    at recoverFromConcurrentError (react-dom.development.js:25889:20)
+    at performConcurrentWorkOnRoot (react-dom.development.js:25789:22)
