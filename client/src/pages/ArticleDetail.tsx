@@ -1,7 +1,7 @@
 import { useSiteSettings } from "@/lib/siteSettings";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Article, Comment } from "@/types";
 import { Heart, MessageCircle, Bookmark, User, Calendar, Loader2 } from "lucide-react";
+import Picker from "emoji-picker-react";
 
 const commentSchema = z.object({
   content: z.string().min(1, "Komentar tidak boleh kosong").max(1000, "Komentar maksimal 1000 karakter"),
@@ -31,6 +32,8 @@ export default function ArticleDetail() {
   const [isLiked, setIsLiked] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [location, setLocation] = useLocation();
+  const [showEmoji, setShowEmoji] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Fetch article
   const { data: article, isLoading: articleLoading } = useQuery({
@@ -278,8 +281,8 @@ export default function ArticleDetail() {
       )}
 
       {/* Article Content */}
-      <div className="prose prose-lg max-w-none mb-12">
-        <div dangerouslySetInnerHTML={{ __html: article.content }} />
+      <div className="prose prose-lg max-w-none mb-12" style={{ textAlign: 'justify' }}>
+        <div style={{ textAlign: 'justify' }} dangerouslySetInnerHTML={{ __html: article.content }} />
       </div>
 
       {/* Comments Section */}
@@ -293,12 +296,48 @@ export default function ArticleDetail() {
           <Card className="mb-8">
             <CardContent className="p-6">
               <form onSubmit={commentForm.handleSubmit(onSubmitComment)} className="space-y-4">
-                <div>
+                <div className="relative">
                   <Textarea
                     placeholder="Tulis komentar Anda..."
                     {...commentForm.register("content")}
                     rows={4}
+                    ref={textareaRef}
                   />
+                  <button
+                    type="button"
+                    className="absolute right-2 bottom-2 text-xl"
+                    onClick={() => setShowEmoji((v) => !v)}
+                    aria-label="Tambah Emoji"
+                  >
+                    😊
+                  </button>
+                  {showEmoji && (
+                    <div className="absolute z-10 bottom-12 right-0">
+                      <Picker
+                        onEmojiClick={(emojiData: { emoji: string }) => {
+                          const emoji = emojiData.emoji;
+                          const textarea = textareaRef.current;
+                          if (textarea) {
+                            const start = textarea.selectionStart;
+                            const end = textarea.selectionEnd;
+                            const value = textarea.value;
+                            const newValue = value.slice(0, start) + emoji + value.slice(end);
+                            textarea.value = newValue;
+                            textarea.setSelectionRange(start + emoji.length, start + emoji.length);
+                            textarea.focus();
+                            commentForm.setValue("content", newValue, { shouldValidate: true });
+                          }
+                          setShowEmoji(false);
+                        }}
+                        height={350}
+                        width={300}
+                        lazyLoadEmojis={true}
+                        searchDisabled={false}
+                        skinTonesDisabled={false}
+                        previewConfig={{ showPreview: false }}
+                      />
+                    </div>
+                  )}
                   {commentForm.formState.errors.content && (
                     <p className="text-sm text-red-600 mt-1">
                       {commentForm.formState.errors.content.message}
