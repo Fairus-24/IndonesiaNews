@@ -327,7 +327,34 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createComment(insertComment: InsertComment): Promise<Comment> {
-    const [comment] = await db.insert(comments).values(insertComment).returning();
+    // Daftar kata buruk/kasar/umum (bisa dikembangkan)
+    const badWords = [
+      'anjing', 'babi', 'bangsat', 'kontol', 'memek', 'asu', 'goblok', 'tolol', 'idiot', 'bodoh', 'kampret',
+      'fuck', 'shit', 'bitch', 'bastard', 'dick', 'pussy', 'asshole', 'faggot', 'cunt', 'ngentot', 'pepek',
+      // ... tambahkan kata lain sesuai kebutuhan
+    ];
+
+    // Deteksi kata buruk/kasar
+    const content = insertComment.content.toLowerCase();
+    const hasBadWord = badWords.some(word => content.includes(word));
+
+    // Deteksi komentar robot/spam sederhana (bisa dikembangkan)
+    const isLikelyBot = (
+      /http(s)?:\/\//.test(content) || // ada link
+      content.length < 5 || // terlalu pendek
+      /[a-zA-Z0-9]{30,}/.test(content) // string acak panjang
+    );
+
+    // Otomatisasi moderasi
+    let isApproved = false;
+    if (!hasBadWord && !isLikelyBot) {
+      isApproved = true;
+    }
+
+    const [comment] = await db.insert(comments).values({
+      ...insertComment,
+      isApproved,
+    }).returning();
     return comment;
   }
 
