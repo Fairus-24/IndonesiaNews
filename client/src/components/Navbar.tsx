@@ -3,6 +3,15 @@ import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import { 
   Newspaper, 
@@ -14,7 +23,9 @@ import {
   X,
   Shield,
   Bookmark,
-  Wrench
+  Wrench,
+  BarChart3,
+  Code
 } from "lucide-react";
 
 export default function Navbar() {
@@ -22,6 +33,9 @@ export default function Navbar() {
   const { user, logout, isAuthenticated } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [, setLocation] = useLocation();
+
+  const isAdmin = () => user?.role === "ADMIN" || user?.role === "DEVELOPER";
+  const isDeveloper = () => user?.role === "DEVELOPER";
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
