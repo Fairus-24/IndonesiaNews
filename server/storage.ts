@@ -506,26 +506,18 @@ export class DatabaseStorage implements IStorage {
     totalLikes: number;
     totalBookmarks: number;
   }> {
-    const [stats] = await db
-      .select({
-        totalArticles: count(articles.id),
-        totalUsers: count(users.id),
-        totalComments: count(comments.id),
-        totalLikes: count(likes.id),
-        totalBookmarks: count(bookmarks.id),
-      })
-      .from(articles)
-      .fullJoin(users, sql`true`)
-      .fullJoin(comments, sql`true`)
-      .fullJoin(likes, sql`true`)
-      .fullJoin(bookmarks, sql`true`);
+    const [articlesCount] = await db.select({ count: count() }).from(articles);
+    const [usersCount] = await db.select({ count: count() }).from(users);
+    const [commentsCount] = await db.select({ count: count() }).from(comments);
+    const [likesCount] = await db.select({ count: count() }).from(likes);
+    const [bookmarksCount] = await db.select({ count: count() }).from(bookmarks);
 
     return {
-      totalArticles: Number(stats.totalArticles) || 0,
-      totalUsers: Number(stats.totalUsers) || 0,
-      totalComments: Number(stats.totalComments) || 0,
-      totalLikes: Number(stats.totalLikes) || 0,
-      totalBookmarks: Number(stats.totalBookmarks) || 0,
+      totalArticles: Number(articlesCount.count) || 0,
+      totalUsers: Number(usersCount.count) || 0,
+      totalComments: Number(commentsCount.count) || 0,
+      totalLikes: Number(likesCount.count) || 0,
+      totalBookmarks: Number(bookmarksCount.count) || 0,
     };
   }
 }

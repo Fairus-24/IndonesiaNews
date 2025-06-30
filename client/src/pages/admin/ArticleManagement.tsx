@@ -1,4 +1,14 @@
 import { useState } from "react";
+// Statistik admin
+type Statistics = {
+  totalArticles: number;
+  totalUsers: number;
+  totalComments: number;
+  totalLikes: number;
+  totalBookmarks: number;
+};
+const PAGE_SIZE_OPTIONS = [10, 50, 100, 300, 500, "all"] as const;
+type PageSize = number | "all";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -42,19 +52,38 @@ const articleSchema = z.object({
 type ArticleFormData = z.infer<typeof articleSchema>;
 
 export default function ArticleManagement() {
+  // Fetch statistik
+  const { data: statistics } = useQuery({
+    queryKey: ["/api/admin/statistics"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/api/admin/statistics");
+      return res.json() as Promise<Statistics>;
+    },
+  });
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<PageSize>(10);
   const [imageUploadType, setImageUploadType] = useState<"file" | "url">("file");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // Fetch articles
   const { data: articlesResponse, isLoading } = useQuery({
-    queryKey: ["/api/articles", { page, published: "all" }],
+    queryKey: ["/api/articles", { page, pageSize }],
     queryFn: async () => {
-      const response = await apiRequest("GET", `/api/articles?page=${page}&limit=10&published=false`);
-      return response.json();
+      let url = "/api/articles";
+      if (pageSize === "all") {
+        url = "/api/articles";
+      } else {
+        url = `/api/articles?page=${page}&limit=${pageSize}`;
+      }
+      const response = await apiRequest("GET", url);
+      const data = await response.json();
+      if (Array.isArray(data.articles)) {
+        data.articles = data.articles.filter((a: Article) => a.category && a.category.id && a.category.name);
+      }
+      return data;
     },
   });
 
@@ -220,6 +249,49 @@ export default function ArticleManagement() {
   return (
     <ProtectedRoute roles={["ADMIN", "DEVELOPER"]}>
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Statistik */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Total Articles</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-center">{statistics?.totalArticles ?? '-'}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Total Users</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-center">{statistics?.totalUsers ?? '-'}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Total Comments</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-center">{statistics?.totalComments ?? '-'}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Total Likes</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-center">{statistics?.totalLikes ?? '-'}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Total Bookmarks</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-center">{statistics?.totalBookmarks ?? '-'}</div>
+            </CardContent>
+          </Card>
+        </div>
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center space-x-3">
@@ -410,6 +482,26 @@ export default function ArticleManagement() {
           </Dialog>
         </div>
 
+        {/* Page Size Selector */}
+        <div className="flex justify-end mb-4">
+          <label className="flex items-center gap-2">
+            Tampilkan
+            <select
+              className="border rounded px-2 py-1"
+              value={pageSize}
+              onChange={e => {
+                const val = e.target.value;
+                setPageSize(val === "all" ? "all" : Number(val));
+                setPage(1);
+              }}
+            >
+              {PAGE_SIZE_OPTIONS.map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+            data
+          </label>
+        </div>
         {/* Articles Table */}
         <Card>
           <CardHeader>
@@ -501,10 +593,32 @@ export default function ArticleManagement() {
               </Table>
             )}
 
-            {articlesResponse?.articles.length === 0 && (
+            {articlesResponse?.articles.length === 0 ? (
               <div className="text-center py-8">
                 <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-600">Belum ada artikel</p>
+              </div>
+            ) : null}
+            {/* Pagination */}
+            {pageSize !== "all" && articlesResponse?.total > pageSize && (
+              <div className="flex justify-end items-center gap-2 mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(page - 1)}
+                  disabled={page === 1}
+                >
+                  Prev
+                </Button>
+                <span>Halaman {page}</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(page + 1)}
+                  disabled={articlesResponse?.articles.length < pageSize}
+                >
+                  Next
+                </Button>
               </div>
             )}
           </CardContent>
