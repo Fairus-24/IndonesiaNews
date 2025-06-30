@@ -20,6 +20,16 @@ import CommentModeration from "@/pages/admin/CommentModeration";
 import DeveloperSettings from "@/pages/developer/Settings";
 import NotFound from "@/pages/not-found";
 import SearchPage from "@/pages/search";
+import { useEffect } from "react";
+import { useLocation } from "wouter";
+
+function ScrollToTop() {
+  const [location] = useLocation();
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [location]);
+  return null;
+}
 
 function Router() {
   return (
@@ -27,6 +37,7 @@ function Router() {
       <AuthProvider>
         <div className="min-h-screen bg-gray-50 flex flex-col">
           <Navbar />
+          <ScrollToTop />
           <div className="flex-1">
             <Switch>
               <Route path="/" component={Home} />

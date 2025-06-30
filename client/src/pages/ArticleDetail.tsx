@@ -1,5 +1,5 @@
 import { useSiteSettings } from "@/lib/siteSettings";
-import { useParams } from "wouter";
+import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -30,6 +30,7 @@ export default function ArticleDetail() {
   const queryClient = useQueryClient();
   const [isLiked, setIsLiked] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
+  const [location, setLocation] = useLocation();
 
   // Fetch article
   const { data: article, isLoading: articleLoading } = useQuery({
@@ -189,6 +190,17 @@ export default function ArticleDetail() {
 
   return (
     <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Back Button */}
+      <button
+        onClick={() => window.history.length > 1 ? window.history.back() : setLocation("/")}
+        className="mb-6 flex items-center text-sm text-gray-600 hover:text-indonesia-red transition-colors focus:outline-none"
+        aria-label="Kembali"
+        type="button"
+      >
+        <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+        Kembali
+      </button>
+
       {/* Article Header */}
       <div className="mb-8">
         <div className="flex items-center space-x-3 mb-4">

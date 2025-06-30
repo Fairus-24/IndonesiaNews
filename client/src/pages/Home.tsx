@@ -9,7 +9,7 @@ import { Article, Category } from "@/types";
 import { Loader2 } from "lucide-react";
 
 export default function Home() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const [page, setPage] = useState(1);
   const [articles, setArticles] = useState<Article[]>([]);
 
@@ -104,10 +104,12 @@ export default function Home() {
           <span className="font-medium">BERITA TERKINI:</span>
           <div className="flex-1 overflow-hidden">
             <div
-              className="whitespace-nowrap animate-marquee"
+              className="whitespace-nowrap animate-marquee cursor-pointer"
               style={{ animation: "marquee 90s linear infinite" }}
+              onClick={() => setLocation(`/article/${featuredArticles[0].slug}`)}
+              title={featuredArticles[0].title}
             >
-              {`${
+              {`$${
                 featuredArticles[0].excerpt ||
                 featuredArticles[0].description ||
                 "Tetap update dengan berita terbaru seputar Indonesia"
@@ -164,7 +166,9 @@ export default function Home() {
                     {featuredArticles.map((article) => (
                       <div
                         key={article.id}
-                        className="min-w-full relative h-72 sm:h-96"
+                        className="min-w-full relative h-72 sm:h-96 cursor-pointer"
+                        onClick={() => setLocation(`/article/${article.slug}`)}
+                        title={article.title}
                       >
                         {/* Gambar Full Card */}
                         {article.coverImage && (
@@ -213,7 +217,7 @@ export default function Home() {
                 Berita Populer
               </h3>
               {articles.slice(3, 6).map((article: Article) => (
-                <Card key={article.id} className="group cursor-pointer">
+                <Card key={article.id} className="group cursor-pointer" onClick={() => setLocation(`/article/${article.slug}`)} title={article.title}>
                   <CardContent className="p-4">
                     {/* {article.coverImage && (
                       <img
