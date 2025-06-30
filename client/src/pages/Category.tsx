@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,12 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import ArticleCard from "@/components/ArticleCard";
 import { Article, Category } from "@/types";
 import { Loader2, Filter } from "lucide-react";
+import { useLocation } from "wouter";
 
 interface CategoryPageProps {
   categorySlug: string;
 }
 
 export default function CategoryPage({ categorySlug }: CategoryPageProps) {
+  const [, setLocation] = useLocation();
   const [page, setPage] = useState(1);
   const [articles, setArticles] = useState<Article[]>([]);
 
@@ -130,7 +131,7 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => window.location.href = "/"}
+                onClick={() => setLocation("/")}
               >
                 Semua
               </Button>
@@ -139,7 +140,7 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
                   key={cat.id}
                   variant={categorySlug === cat.slug ? "default" : "outline"}
                   size="sm"
-                  onClick={() => window.location.href = `/category/${cat.slug}`}
+                  onClick={() => setLocation(`/category/${cat.slug}`)}
                   className={categorySlug === cat.slug ? "bg-indonesia-red hover:bg-indonesia-red/90" : ""}
                 >
                   {cat.name}
