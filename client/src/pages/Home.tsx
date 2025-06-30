@@ -150,8 +150,27 @@ export default function Home() {
                 <div className="overflow-hidden rounded-lg shadow-lg">
                   <div className="flex transition-transform duration-700" style={{ transform: `translateX(-${featuredIndex * 100}%)` }}>
                     {featuredArticles.map((article) => (
-                      <div key={article.id} className="min-w-full">
-                        <ArticleCard article={article} />
+                      <div key={article.id} className="min-w-full relative h-72 sm:h-96">
+                        {/* Gambar Full Card */}
+                        {article.coverImage && (
+                          <img
+                            src={article.coverImage}
+                            alt={article.title}
+                            className="w-full h-full object-cover rounded-lg"
+                          />
+                        )}
+                        {/* Overlay kategori & judul di kiri bawah */}
+                        <div className="absolute left-0 bottom-0 w-full bg-gradient-to-t from-black/80 to-transparent p-4 rounded-b-lg flex flex-col items-start">
+                          <Badge
+                            style={{ backgroundColor: article.category.color }}
+                            className="text-white text-xs mb-2 px-3 py-1"
+                          >
+                            {article.category.name}
+                          </Badge>
+                          <h2 className="text-lg sm:text-2xl font-bold text-white drop-shadow-md line-clamp-2">
+                            {article.title}
+                          </h2>
+                        </div>
                       </div>
                     ))}
                   </div>
