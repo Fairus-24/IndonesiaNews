@@ -280,9 +280,7 @@ export default function Home() {
                   key={cat.id}
                   variant={category === cat.slug ? "default" : "outline"}
                   size="sm"
-                  onClick={() =>
-                    (window.location.href = `/category/${cat.slug}`)
-                  }
+                  onClick={() => setLocation(`/category/${cat.slug}`)}
                   className={
                     category === cat.slug
                       ? "bg-indonesia-red hover:bg-indonesia-red/90"
