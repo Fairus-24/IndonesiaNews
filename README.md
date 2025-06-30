@@ -127,7 +127,7 @@ flowchart TD
 ---
 
 <p align="center">
-  <img src="https://user-images.githubusercontent.com/placeholder/indonesianews-preview.png" alt="Preview" width="700"/>
+  <img src="https://raw.githubusercontent.com/Fairus-24/IndonesiaNews/refs/heads/main/client/src/assets/preview.png" alt="Preview" width="700"/>
 </p>
 
 <details>
