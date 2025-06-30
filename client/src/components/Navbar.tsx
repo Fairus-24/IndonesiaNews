@@ -33,6 +33,7 @@ export default function Navbar() {
   const { user, logout, isAuthenticated } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [, setLocation] = useLocation();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const isAdmin = () => user?.role === "ADMIN" || user?.role === "DEVELOPER";
   const isDeveloper = () => user?.role === "DEVELOPER";
@@ -63,6 +64,8 @@ export default function Navbar() {
     } else {
       setLocation(`/?category=${category.toLowerCase()}`);
     }
+    // Close mobile menu after navigation
+    setIsMobileMenuOpen(false);
   };
 
   return (
@@ -188,7 +191,7 @@ export default function Navbar() {
             )}
 
             {/* Mobile Menu */}
-            <Sheet>
+            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="sm" className="md:hidden">
                   <Menu className="h-4 w-4" />
