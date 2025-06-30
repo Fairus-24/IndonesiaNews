@@ -140,30 +140,71 @@ export default function Home() {
       </div>
       )}
 
-      {/* Hero Section: Featured Slider */}
+      {/* Hero Section: Featured Slider + Berita Populer */}
       {!search && !category && featuredArticles.length > 0 && (
         <section className="mb-12">
-          <div className="relative w-full max-w-4xl mx-auto">
-            <div className="overflow-hidden rounded-lg shadow-lg">
-              <div className="flex transition-transform duration-700" style={{ transform: `translateX(-${featuredIndex * 100}%)` }}>
-                {featuredArticles.map((article) => (
-                  <div key={article.id} className="min-w-full">
-                    <ArticleCard article={article} />
+          <div className="grid lg:grid-cols-3 gap-8">
+            {/* Featured Slider */}
+            <div className="lg:col-span-2">
+              <div className="relative w-full">
+                <div className="overflow-hidden rounded-lg shadow-lg">
+                  <div className="flex transition-transform duration-700" style={{ transform: `translateX(-${featuredIndex * 100}%)` }}>
+                    {featuredArticles.map((article) => (
+                      <div key={article.id} className="min-w-full">
+                        <ArticleCard article={article} />
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </div>
+                {/* Dots */}
+                <div className="flex justify-center mt-4 gap-2">
+                  {featuredArticles.map((_, idx) => (
+                    <button
+                      key={idx}
+                      className={`w-3 h-3 rounded-full ${idx === featuredIndex ? 'bg-indonesia-red' : 'bg-gray-300'}`}
+                      onClick={() => setFeaturedIndex(idx)}
+                      aria-label={`Slide ${idx + 1}`}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
-            {/* Dots */}
-            <div className="flex justify-center mt-4 gap-2">
-              {featuredArticles.map((_, idx) => (
-                <button
-                  key={idx}
-                  className={`w-3 h-3 rounded-full ${idx === featuredIndex ? 'bg-indonesia-red' : 'bg-gray-300'}`}
-                  onClick={() => setFeaturedIndex(idx)}
-                  aria-label={`Slide ${idx + 1}`}
-                />
+            {/* Berita Populer */}
+            <aside className="space-y-6">
+              <h3 className="text-xl font-bold text-gray-900 border-b-2 border-indonesia-red pb-2">
+                Berita Populer
+              </h3>
+              {articles.slice(3, 6).map((article: Article) => (
+                <Card key={article.id} className="group cursor-pointer">
+                  <CardContent className="p-4">
+                    {article.coverImage && (
+                      <img
+                        src={article.coverImage}
+                        alt={article.title}
+                        className="w-full h-32 object-cover rounded-lg mb-3 group-hover:opacity-90 transition-opacity"
+                      />
+                    )}
+                    <div className="flex items-center space-x-2 mb-2">
+                      <Badge
+                        style={{ backgroundColor: article.category.color }}
+                        className="text-white text-xs"
+                      >
+                        {article.category.name}
+                      </Badge>
+                      <span className="text-gray-500 text-xs">
+                        {new Date(article.publishedAt || article.createdAt).toLocaleDateString("id-ID")}
+                      </span>
+                    </div>
+                    <h4 className="font-semibold text-gray-900 group-hover:text-indonesia-red transition-colors mb-2 line-clamp-2">
+                      {article.title}
+                    </h4>
+                    <p className="text-sm text-gray-600 line-clamp-2">
+                      {article.excerpt}
+                    </p>
+                  </CardContent>
+                </Card>
               ))}
-            </div>
+            </aside>
           </div>
         </section>
       )}
