@@ -51,7 +51,6 @@ const articleSchema = z.object({
 
 type ArticleFormData = z.infer<typeof articleSchema>;
 
-import { useNavigate } from "react-router-dom";
 
 export default function ArticleManagement() {
   // Fetch statistik
@@ -69,7 +68,6 @@ export default function ArticleManagement() {
   const [imageUploadType, setImageUploadType] = useState<"file" | "url">("file");
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
 
   // Fetch articles
   const { data: articlesResponse, isLoading } = useQuery({
@@ -253,7 +251,7 @@ export default function ArticleManagement() {
     <ProtectedRoute roles={["ADMIN", "DEVELOPER"]}>
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-4">
-          <Button variant="outline" onClick={() => navigate(-1)}>
+          <Button variant="outline" onClick={() => window.history.back()}>
             Kembali
           </Button>
         </div>
