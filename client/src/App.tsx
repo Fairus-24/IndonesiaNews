@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
 import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import { SiteSettingsProvider } from "./lib/siteSettings";
 import Home from "@/pages/Home";
 import Login from "@/pages/Login";
@@ -23,24 +24,27 @@ function Router() {
   return (
     <SiteSettingsProvider>
       <AuthProvider>
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gray-50 flex flex-col">
           <Navbar />
-          <Switch>
-            <Route path="/" component={Home} />
-            <Route path="/login" component={Login} />
-            <Route path="/register" component={Register} />
-            <Route path="/article/:slug" component={ArticleDetail} />
-            <Route path="/bookmarks" component={Bookmarks} />
-            <Route path="/category/:categorySlug">
-              {(params) => <CategoryPage categorySlug={params.categorySlug} />}
-            </Route>
-            <Route path="/settings" component={Settings} />
-            <Route path="/admin" component={AdminDashboard} />
-            <Route path="/admin/articles" component={ArticleManagement} />
-            <Route path="/admin/comments" component={CommentModeration} />
-            <Route path="/dev" component={DeveloperSettings} />
-            <Route component={NotFound} />
-          </Switch>
+          <div className="flex-1">
+            <Switch>
+              <Route path="/" component={Home} />
+              <Route path="/login" component={Login} />
+              <Route path="/register" component={Register} />
+              <Route path="/article/:slug" component={ArticleDetail} />
+              <Route path="/bookmarks" component={Bookmarks} />
+              <Route path="/category/:categorySlug">
+                {(params) => <CategoryPage categorySlug={params.categorySlug} />}
+              </Route>
+              <Route path="/settings" component={Settings} />
+              <Route path="/admin" component={AdminDashboard} />
+              <Route path="/admin/articles" component={ArticleManagement} />
+              <Route path="/admin/comments" component={CommentModeration} />
+              <Route path="/dev" component={DeveloperSettings} />
+              <Route component={NotFound} />
+            </Switch>
+          </div>
+          <Footer />
         </div>
       </AuthProvider>
     </SiteSettingsProvider>
