@@ -262,26 +262,24 @@ export default function AdminDashboard() {
                   <CardTitle>Ringkasan Konten</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Total Artikel</span>
-                      <span className="text-sm font-medium">{stats?.totalArticles || 0}</span>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <p className="font-medium text-gray-900">Total Artikel</p>
+                        <p className="text-sm text-gray-500">Artikel yang telah diterbitkan</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-2xl font-bold text-indonesia-red">{stats?.totalArticles || 0}</p>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Total Komentar</span>
-                      <span className="text-sm font-medium">{stats?.totalComments || 0}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Total Suka</span>
-                      <span className="text-sm font-medium">{stats?.totalLikes || 0}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Total Bookmark</span>
-                      <span className="text-sm font-medium">{stats?.totalBookmarks || 0}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Total Pengguna</span>
-                      <span className="text-sm font-medium">{stats?.totalUsers || 0}</span>
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <p className="font-medium text-gray-900">Total Komentar</p>
+                        <p className="text-sm text-gray-500">Komentar dari pengguna</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-2xl font-bold text-blue-600">{stats?.totalComments || 0}</p>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -292,18 +290,24 @@ export default function AdminDashboard() {
                   <CardTitle>Interaksi Pengguna</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Total Suka</span>
-                      <span className="text-sm font-medium text-red-600">{stats?.totalLikes || 0}</span>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <p className="font-medium text-gray-900">Total Suka</p>
+                        <p className="text-sm text-gray-500">Like dari pengguna</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-2xl font-bold text-red-600">{stats?.totalLikes || 0}</p>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Total Bookmark</span>
-                      <span className="text-sm font-medium text-purple-600">{stats?.totalBookmarks || 0}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Total Komentar</span>
-                      <span className="text-sm font-medium text-yellow-600">{stats?.totalComments || 0}</span>
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <p className="font-medium text-gray-900">Total Bookmark</p>
+                        <p className="text-sm text-gray-500">Artikel yang disimpan</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-2xl font-bold text-purple-600">{stats?.totalBookmarks || 0}</p>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -314,18 +318,24 @@ export default function AdminDashboard() {
                   <CardTitle>Aktivitas Sistem</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Artikel Aktif</span>
-                      <span className="text-sm font-medium text-green-600">{stats?.totalArticles || 0}</span>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <p className="font-medium text-gray-900">Total Pengguna</p>
+                        <p className="text-sm text-gray-500">Pengguna terdaftar</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-2xl font-bold text-green-600">{stats?.totalUsers || 0}</p>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Pengguna Aktif</span>
-                      <span className="text-sm font-medium text-blue-600">{stats?.totalUsers || 0}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Total Interaksi</span>
-                      <span className="text-sm font-medium text-purple-600">{(stats?.totalLikes || 0) + (stats?.totalComments || 0) + (stats?.totalBookmarks || 0)}</span>
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <p className="font-medium text-gray-900">Total Interaksi</p>
+                        <p className="text-sm text-gray-500">Suka + Komentar + Bookmark</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-2xl font-bold text-purple-600">{(stats?.totalLikes || 0) + (stats?.totalComments || 0) + (stats?.totalBookmarks || 0)}</p>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
