@@ -51,6 +51,8 @@ const articleSchema = z.object({
 
 type ArticleFormData = z.infer<typeof articleSchema>;
 
+import { useNavigate } from "react-router-dom";
+
 export default function ArticleManagement() {
   // Fetch statistik
   const { data: statistics } = useQuery({
@@ -67,6 +69,7 @@ export default function ArticleManagement() {
   const [imageUploadType, setImageUploadType] = useState<"file" | "url">("file");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   // Fetch articles
   const { data: articlesResponse, isLoading } = useQuery({
@@ -249,49 +252,12 @@ export default function ArticleManagement() {
   return (
     <ProtectedRoute roles={["ADMIN", "DEVELOPER"]}>
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Statistik */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Total Articles</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-center">{statistics?.totalArticles ?? '-'}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Total Users</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-center">{statistics?.totalUsers ?? '-'}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Total Comments</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-center">{statistics?.totalComments ?? '-'}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Total Likes</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-center">{statistics?.totalLikes ?? '-'}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Total Bookmarks</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-center">{statistics?.totalBookmarks ?? '-'}</div>
-            </CardContent>
-          </Card>
+        <div className="mb-4">
+          <Button variant="outline" onClick={() => navigate(-1)}>
+            Kembali
+          </Button>
         </div>
+        
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center space-x-3">
