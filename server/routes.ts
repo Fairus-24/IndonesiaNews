@@ -17,11 +17,14 @@ const limiter = rateLimit({
   message: "Terlalu banyak permintaan, coba lagi nanti",
 });
 
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // limit each IP to 5 auth requests per windowMs
-  message: "Terlalu banyak percobaan login, coba lagi nanti",
-});
+
+const authLimiter = process.env.NODE_ENV === "production"
+  ? rateLimit({
+      windowMs: 15 * 60 * 1000, // 15 minutes
+      max: 5, // limit each IP to 5 auth requests per windowMs
+      message: "Terlalu banyak percobaan login, coba lagi nanti",
+    })
+  : (req: any, res: any, next: any) => next(); // No rate limit in development
 
 // Google OAuth setup
 const googleClient = new OAuth2Client(
@@ -278,8 +281,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let coverImage = undefined;
       if (req.body.imageUploadType === "url" && req.body.coverImageUrl) {
         coverImage = req.body.coverImageUrl;
-      } else if (req.body.imageUploadType === "file" && req.file) {
-        coverImage = `/uploads/${req.file.filename}`;
+      } else if (req.body.imageUploadType === "file" && (req as any).file) {
+        coverImage = `/uploads/${(req as any).file.filename}`;
       }
 
       const article = await storage.createArticle({
@@ -318,8 +321,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updates.coverImage = coverImage;
       }
 
-      if (req.file) {
-        updates.coverImage = `/uploads/${req.file.filename}`;
+      if ((req as any).file) {
+        updates.coverImage = `/uploads/${(req as any).file.filename}`;
       }
 
       const article = await storage.updateArticle(id, updates);
@@ -538,7 +541,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         {
           timestamp: new Date().toISOString(),
           level: "info", 
-          message: `Memory usage: ${Math.round(process.memoryUsage().used / 1024 / 1024)} MB`,
+          message: `Memory usage: ${Math.round(process.memoryUsage().rss / 1024 / 1024)} MB`,
         },
         {
           timestamp: new Date().toISOString(),
@@ -572,33 +575,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("Default categories created");
       }
 
-      // Create default admin user if none exists
-      const adminUser = await storage.getUserByEmail("admin@example.com");
-      if (!adminUser) {
-        const hashedPassword = await hashPassword("admin123");
-        await storage.createUser({
-          username: "admin",
-          email: "admin@example.com",
-          password: hashedPassword,
-          fullName: "Administrator",
-          role: "ADMIN",
-        });
-        console.log("Default admin user created (admin@example.com / admin123)");
-      }
-
-      // Create default developer user if none exists
-      const devUser = await storage.getUserByEmail("developer@example.com");
-      if (!devUser) {
-        const hashedPassword = await hashPassword("dev123");
-        await storage.createUser({
-          username: "developer",
-          email: "developer@example.com",
-          password: hashedPassword,
-          fullName: "Developer",
-          role: "DEVELOPER",
-        });
-        console.log("Default developer user created (developer@example.com / dev123)");
-      }
+      // (Removed) Do not create default admin and developer users automatically
 
     } catch (error) {
       console.error("Error initializing data:", error);

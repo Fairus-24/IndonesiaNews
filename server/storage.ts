@@ -365,14 +365,7 @@ export class DatabaseStorage implements IStorage {
     return user || null;
   }
 
-  async updateUser(id: number, updates: Partial<InsertUser>): Promise<User> {
-    const [user] = await db
-      .update(users)
-      .set(updates)
-      .where(eq(users.id, id))
-      .returning();
-    return user;
-  }
+  // Duplicate removed. Only one updateUser remains.
 
   async getPendingComments(): Promise<CommentWithAuthor[]> {
     const result = await db

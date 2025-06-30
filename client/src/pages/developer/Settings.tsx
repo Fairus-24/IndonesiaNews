@@ -243,7 +243,9 @@ export default function DeveloperSettings() {
                       />
                       {form.formState.errors.value && (
                         <p className="text-sm text-red-600 mt-1">
-                          {form.formState.errors.value.message}
+                          {typeof form.formState.errors.value?.message === "string"
+                            ? form.formState.errors.value.message
+                            : null}
                         </p>
                       )}
                     </div>
