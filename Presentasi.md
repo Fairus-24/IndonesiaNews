@@ -1265,4 +1265,235 @@ export default function Bookmarks() {
 
 ---
 
-Potongan kode di atas menambah variasi contoh implementasi UI, interaksi, dan logika aplikasi Anda.
+### 51. Menampilkan Daftar Kategori di Sidebar (components/ui/sidebar.tsx)
+```tsx
+{categories.map((cat) => (
+  <li key={cat.id}>
+    <a href={`/category/${cat.slug}`}>{cat.name}</a>
+  </li>
+))}
+```
+**Penjelasan:**
+- Menampilkan daftar kategori berita di sidebar untuk navigasi cepat.
+
+---
+
+### 52. Menangani Error Fetch Data (pages/Home.tsx)
+```tsx
+if (articlesError) {
+  return <div className="text-center text-red-500">Gagal memuat artikel</div>;
+}
+```
+**Penjelasan:**
+- Menampilkan pesan error jika gagal mengambil data artikel dari backend.
+
+---
+
+### 53. Menampilkan User Info di Navbar (components/Navbar.tsx)
+```tsx
+{isAuthenticated ? (
+  <div className="flex items-center space-x-2">
+    <span>{user.fullName}</span>
+    <Button onClick={logout}>Logout</Button>
+  </div>
+) : (
+  <Button asChild><a href="/login">Login</a></Button>
+)}
+```
+**Penjelasan:**
+- Menampilkan nama user dan tombol logout jika sudah login, atau tombol login jika belum.
+
+---
+
+### 54. Menampilkan Notifikasi Sukses di Admin (pages/admin/ArticleManagement.tsx)
+```tsx
+toast({ description: "Artikel berhasil dihapus" });
+```
+**Penjelasan:**
+- Memberi feedback ke admin setelah aksi penting seperti hapus artikel.
+
+---
+
+### 55. Menampilkan Form Edit Artikel (pages/admin/ArticleManagement.tsx)
+```tsx
+<form onSubmit={form.handleSubmit(onSubmit)}>
+  <input {...form.register("title")} />
+  <textarea {...form.register("content")} />
+  <Button type="submit">Simpan Perubahan</Button>
+</form>
+```
+**Penjelasan:**
+- Form untuk mengedit artikel di admin panel.
+
+---
+
+### 56. Menampilkan Daftar Komentar untuk Moderasi (pages/admin/CommentModeration.tsx)
+```tsx
+{comments.map((comment) => (
+  <Card key={comment.id}>
+    <CardContent>
+      <p>{comment.content}</p>
+      <Button onClick={() => approveComment(comment.id)}>Approve</Button>
+      <Button onClick={() => deleteComment(comment.id)}>Delete</Button>
+    </CardContent>
+  </Card>
+))}
+```
+**Penjelasan:**
+- Menampilkan komentar yang menunggu moderasi dan tombol aksi untuk admin.
+
+---
+
+### 57. Menampilkan Site Settings di Developer Panel (pages/developer/Settings.tsx)
+```tsx
+{generalSettings.map((setting) => (
+  <div key={setting.key}>
+    <label>{setting.key}</label>
+    <input value={setting.value} onChange={...} />
+  </div>
+))}
+```
+**Penjelasan:**
+- Menampilkan dan mengedit pengaturan situs di panel developer/admin.
+
+---
+
+### 58. Menampilkan Feature Flags (pages/developer/Settings.tsx)
+```tsx
+{featureFlags.map((flag) => (
+  <div key={flag.key}>
+    <label>{flag.key}</label>
+    <Switch checked={flag.value} onCheckedChange={...} />
+  </div>
+))}
+```
+**Penjelasan:**
+- Menampilkan dan mengatur status fitur (aktif/nonaktif) secara dinamis.
+
+---
+
+### 59. Menampilkan Data User di Admin (pages/admin/ArticleManagement.tsx)
+```tsx
+<td>{article.author.fullName}</td>
+```
+**Penjelasan:**
+- Menampilkan nama penulis artikel di tabel manajemen artikel admin.
+
+---
+
+### 60. Menampilkan Tanggal Publish Artikel (pages/admin/ArticleManagement.tsx)
+```tsx
+<td>{formatDate(article.publishedAt)}</td>
+```
+**Penjelasan:**
+- Menampilkan tanggal publish artikel di tabel admin.
+
+---
+
+### 61. Menampilkan Status Moderasi Komentar (pages/admin/CommentModeration.tsx)
+```tsx
+<td>{comment.isApproved ? "Disetujui" : "Menunggu"}</td>
+```
+**Penjelasan:**
+- Menampilkan status moderasi komentar di tabel admin.
+
+---
+
+### 62. Menampilkan Jumlah Bookmark di Artikel (pages/ArticleDetail.tsx)
+```tsx
+<span>{article._count.bookmarks}</span>
+```
+**Penjelasan:**
+- Menampilkan jumlah user yang menyimpan artikel sebagai bookmark.
+
+---
+
+### 63. Menampilkan Error Validasi Register (pages/Register.tsx)
+```tsx
+{form.formState.errors.email && (
+  <p className="text-red-500">{form.formState.errors.email.message}</p>
+)}
+```
+**Penjelasan:**
+- Menampilkan pesan error jika email tidak valid saat register.
+
+---
+
+### 64. Menampilkan Loader di Admin Panel (pages/admin/ArticleManagement.tsx)
+```tsx
+{isLoading && <Loader2 className="h-6 w-6 animate-spin" />}
+```
+**Penjelasan:**
+- Loader animasi saat data admin sedang diambil.
+
+---
+
+### 65. Menampilkan Pesan Jika Tidak Ada Data (pages/Bookmarks.tsx)
+```tsx
+{bookmarks.length === 0 && (
+  <div className="text-center text-gray-500">Belum ada artikel yang di-bookmark</div>
+)}
+```
+**Penjelasan:**
+- Menampilkan pesan jika user belum menyimpan artikel apapun.
+
+---
+
+### 66. Menampilkan Avatar User (components/Navbar.tsx)
+```tsx
+{user.avatar && <img src={user.avatar} className="w-8 h-8 rounded-full" />}
+```
+**Penjelasan:**
+- Menampilkan avatar user jika tersedia di navbar.
+
+---
+
+### 67. Menampilkan Pagination (pages/Home.tsx)
+```tsx
+<Pagination
+  currentPage={page}
+  totalPages={Math.ceil((articlesResponse?.total || 0) / 10)}
+  onPageChange={setPage}
+/>
+```
+**Penjelasan:**
+- Komponen pagination untuk navigasi antar halaman artikel.
+
+---
+
+### 68. Menampilkan Filter Search (pages/Home.tsx)
+```tsx
+<input
+  type="text"
+  value={searchQuery}
+  onChange={(e) => setSearchQuery(e.target.value)}
+  placeholder="Cari berita..."
+/>
+```
+**Penjelasan:**
+- Input pencarian untuk filter artikel berdasarkan kata kunci.
+
+---
+
+### 69. Menampilkan Error Global (App.tsx)
+```tsx
+<ErrorBoundary>
+  <Router />
+</ErrorBoundary>
+```
+**Penjelasan:**
+- Menangani error global aplikasi agar tidak blank saat terjadi error tak terduga.
+
+---
+
+### 70. Menampilkan Switch Dark Mode (Navbar.tsx / Settings.tsx)
+```tsx
+<Switch checked={isDarkMode} onCheckedChange={toggleDarkMode} />
+```
+**Penjelasan:**
+- Komponen switch untuk mengaktifkan mode gelap/terang aplikasi.
+
+---
+
+Potongan kode di atas semakin melengkapi dokumentasi dan penjelasan implementasi seluruh fitur utama aplikasi Anda.
+
