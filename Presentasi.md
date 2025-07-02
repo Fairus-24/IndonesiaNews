@@ -218,5 +218,102 @@ Portal Berita IndonesiaNews berhasil dibangun dengan fitur lengkap, arsitektur m
 - Integrasi analitik pengunjung.
 - Peningkatan keamanan (captcha, audit log admin, dsb).
 
+---
+
+## Struktur & Penjelasan Database
+
+### 1. Tabel User
+- **Kolom:**
+  - id: Primary key, identitas unik user
+  - fullName: Nama lengkap user
+  - email: Email user (unik)
+  - password: Password terenkripsi
+  - role: Peran user (user/admin/developer)
+- **Kegunaan:**
+  - Menyimpan data akun user
+  - Menentukan hak akses (fitur personal/admin)
+
+### 2. Tabel Article
+- **Kolom:**
+  - id: Primary key, identitas artikel
+  - title: Judul artikel
+  - content: Isi artikel (HTML)
+  - excerpt: Ringkasan artikel
+  - coverImage: URL gambar utama
+  - categoryId: Relasi ke kategori
+  - authorId: Relasi ke user penulis
+  - publishedAt: Tanggal publish
+  - createdAt, updatedAt: Timestamp
+- **Kegunaan:**
+  - Menyimpan seluruh artikel berita
+  - Relasi ke user (penulis) dan kategori
+
+### 3. Tabel Category
+- **Kolom:**
+  - id: Primary key
+  - name: Nama kategori
+  - color: Warna kategori (untuk badge)
+  - slug: Slug unik untuk URL
+- **Kegunaan:**
+  - Menyimpan daftar kategori berita
+  - Digunakan untuk filter dan navigasi
+
+### 4. Tabel Comment
+- **Kolom:**
+  - id: Primary key
+  - content: Isi komentar
+  - articleId: Relasi ke artikel
+  - authorId: Relasi ke user
+  - createdAt: Timestamp
+  - status: Status moderasi (approved/pending/rejected)
+- **Kegunaan:**
+  - Menyimpan komentar user pada artikel
+  - Mendukung moderasi otomatis/manual
+
+### 5. Tabel Settings
+- **Kolom:**
+  - key: Nama pengaturan (misal: feature_flags)
+  - value: Nilai pengaturan (JSON/string)
+- **Kegunaan:**
+  - Menyimpan pengaturan global aplikasi (site settings, feature flags)
+  - Digunakan untuk mengaktifkan/menonaktifkan fitur dari admin panel
+
+### 6. Tabel Bookmark (opsional, jika tidak di dalam User/Article)
+- **Kolom:**
+  - id: Primary key
+  - userId: Relasi ke user
+  - articleId: Relasi ke artikel
+- **Kegunaan:**
+  - Menyimpan data artikel yang di-bookmark user
+
+---
+
+## Komunikasi Frontend & Backend
+
+- **Frontend (React):**
+  - Mengirim request ke backend menggunakan fetch/axios (REST API)
+  - Contoh: GET /api/articles, POST /api/articles/:id/comments
+  - Mengirim data (JSON) untuk aksi: login, register, komentar, like, bookmark, dsb
+  - Menerima response (data, status, pesan error) dari backend
+  - Menampilkan data ke user sesuai response
+
+- **Backend (Express.js):**
+  - Menerima request dari frontend
+  - Melakukan autentikasi (cek JWT), validasi data, dan otorisasi
+  - Memproses request: query ke database, simpan data, update, hapus, dsb
+  - Mengirim response ke frontend (data, status, pesan)
+
+- **Contoh Alur Komunikasi:**
+  1. User klik tombol Like di frontend
+  2. Frontend kirim POST /api/articles/:id/like ke backend
+  3. Backend cek autentikasi, update data like di database
+  4. Backend kirim response (berhasil/gagal) ke frontend
+  5. Frontend update tampilan jumlah like
+
+- **Keamanan:**
+  - Semua endpoint penting dilindungi autentikasi JWT
+  - Validasi data di backend untuk mencegah data tidak valid/berbahaya
+
+---
 
 Makalah ini dapat digunakan sebagai dokumentasi, laporan, atau lampiran presentasi proyek.
