@@ -1,674 +1,249 @@
-import {
-  users,
-  articles,
-  categories,
-  comments,
-  likes,
-  bookmarks,
-  siteSettings,
-  type User,
-  type InsertUser,
-  type Article,
-  type InsertArticle,
-  type Category,
-  type InsertCategory,
-  type Comment,
-  type InsertComment,
-  type Like,
-  type InsertLike,
-  type Bookmark,
-  type InsertBookmark,
-  type SiteSetting,
-  type InsertSiteSetting,
-  type ArticleWithDetails,
-  type CommentWithAuthor,
-} from "@shared/schema";
-import { db } from "./db";
-import { eq, desc, and, like, count, sql, or } from "drizzle-orm";
+import { PrismaClient, User, Category, Article, Comment, Like, Bookmark, SiteSetting } from '@prisma/client';
+import { prisma } from './db';
+import { InsertUser, InsertCategory, InsertArticle, InsertComment, InsertSiteSetting } from '@shared/schema';
 
-export interface IStorage {
+export class DatabaseStorage {
   // User methods
-  getUser(id: number): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  getUserByEmail(email: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
-  updateUser(id: number, updates: Partial<InsertUser>): Promise<User>;
-  getAllUsers(): Promise<User[]>;
-  updateUserRole(id: number, role: string): Promise<User>;
+  async getUser(id: number): Promise<User | null> {
+    return prisma.user.findUnique({ where: { id } });
+  }
+  async getUserByUsername(username: string): Promise<User | null> {
+    return prisma.user.findUnique({ where: { username } });
+  }
+  async getUserByEmail(email: string): Promise<User | null> {
+    return prisma.user.findUnique({ where: { email } });
+  }
+  async createUser(user: InsertUser): Promise<User> {
+    return prisma.user.create({ data: user });
+  }
+  async updateUser(id: number, updates: Partial<InsertUser>): Promise<User> {
+    return prisma.user.update({ where: { id }, data: { ...updates, updatedAt: new Date() } });
+  }
+  async getAllUsers(): Promise<User[]> {
+    return prisma.user.findMany();
+  }
+  async updateUserRole(id: number, role: string): Promise<User> {
+    if (!['USER', 'ADMIN', 'DEVELOPER'].includes(role)) throw new Error('Role tidak valid');
+    return prisma.user.update({ where: { id }, data: { role } });
+  }
 
   // Category methods
-  getCategories(): Promise<Category[]>;
-  getCategoryBySlug(slug: string): Promise<Category | undefined>;
-  createCategory(category: InsertCategory): Promise<Category>;
-  updateCategory(
-    id: number,
-    updates: Partial<InsertCategory>
-  ): Promise<Category>;
-  deleteCategory(id: number): Promise<void>;
+  async getCategories(): Promise<Category[]> {
+    return prisma.category.findMany({ orderBy: { name: 'asc' } });
+  }
+  async getCategoryBySlug(slug: string): Promise<Category | null> {
+    return prisma.category.findUnique({ where: { slug } });
+  }
+  async createCategory(category: InsertCategory): Promise<Category> {
+    return prisma.category.create({ data: category });
+  }
+  async updateCategory(id: number, updates: Partial<InsertCategory>): Promise<Category> {
+    return prisma.category.update({ where: { id }, data: updates });
+  }
+  async deleteCategory(id: number): Promise<void> {
+    await prisma.category.delete({ where: { id } });
+  }
 
   // Article methods
-  getArticles(
-    page: number,
-    limit: number,
-    categorySlug?: string,
-    search?: string,
-    published?: boolean
-  ): Promise<{ articles: ArticleWithDetails[]; total: number }>;
-  getArticleById(id: number): Promise<ArticleWithDetails | undefined>;
-  getArticleBySlug(slug: string): Promise<ArticleWithDetails | undefined>;
-  createArticle(article: InsertArticle): Promise<Article>;
-  updateArticle(id: number, updates: Partial<InsertArticle>): Promise<Article>;
-  deleteArticle(id: number): Promise<void>;
+  async getArticles(page = 1, limit = 10, categorySlug?: string, search?: string, published?: boolean): Promise<{ articles: any[]; total: number }> {
+    const where: any = {
+      ...(published !== undefined ? { isPublished: published } : {}),
+      ...(categorySlug ? { category: { slug: categorySlug } } : {}),
+      ...(search ? { OR: [
+        { title: { contains: search, mode: 'insensitive' } },
+        { content: { contains: search, mode: 'insensitive' } },
+        { excerpt: { contains: search, mode: 'insensitive' } },
+      ] } : {}),
+    };
+    const [articles, total] = await Promise.all([
+      prisma.article.findMany({
+        where,
+        include: { author: true, category: true, likes: true, comments: true, bookmarks: true },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.article.count({ where }),
+    ]);
+    const articlesWithDetails = articles.map((article: any) => ({
+      ...article,
+      _count: {
+        likes: article.likes.length,
+        comments: article.comments.filter((c: any) => c.isApproved).length,
+        bookmarks: article.bookmarks.length,
+      },
+    }));
+    return { articles: articlesWithDetails, total };
+  }
+  async getArticleById(id: number): Promise<any | undefined> {
+    const article = await prisma.article.findUnique({
+      where: { id },
+      include: { author: true, category: true, likes: true, comments: true, bookmarks: true },
+    });
+    if (!article) return undefined;
+    return {
+      ...article,
+      _count: {
+        likes: article.likes.length,
+        comments: article.comments.filter((c: any) => c.isApproved).length,
+        bookmarks: article.bookmarks.length,
+      },
+    };
+  }
+  async getArticleBySlug(slug: string): Promise<any | undefined> {
+    const article = await prisma.article.findUnique({
+      where: { slug },
+      include: { author: true, category: true, likes: true, comments: true, bookmarks: true },
+    });
+    if (!article) return undefined;
+    return {
+      ...article,
+      _count: {
+        likes: article.likes.length,
+        comments: article.comments.filter((c: any) => c.isApproved).length,
+        bookmarks: article.bookmarks.length,
+      },
+    };
+  }
+  async createArticle(article: InsertArticle): Promise<Article> {
+    return prisma.article.create({ data: article });
+  }
+  async updateArticle(id: number, updates: Partial<InsertArticle>): Promise<Article> {
+    return prisma.article.update({ where: { id }, data: { ...updates, updatedAt: new Date() } });
+  }
+  async deleteArticle(id: number): Promise<void> {
+    await prisma.article.delete({ where: { id } });
+  }
 
   // Comment methods
-  getCommentsByArticleId(articleId: number): Promise<CommentWithAuthor[]>;
-  createComment(comment: InsertComment): Promise<Comment>;
-  updateComment(id: number, updates: Partial<InsertComment>): Promise<Comment>;
-  deleteComment(id: number): Promise<void>;
-  getPendingComments(): Promise<CommentWithAuthor[]>;
-  getAllComments(): Promise<CommentWithAuthor[]>;
-  getUserById(id: number): Promise<User | null>;
-  updateUser(id: number, updates: Partial<InsertUser>): Promise<User>;
-
-  // Like methods
-  toggleLike(userId: number, articleId: number): Promise<boolean>;
-  getUserLikes(userId: number): Promise<Like[]>;
-
-  // Bookmark methods
-  toggleBookmark(userId: number, articleId: number): Promise<boolean>;
-  getUserBookmarks(
-    userId: number,
-    page: number,
-    limit: number
-  ): Promise<{ bookmarks: ArticleWithDetails[]; total: number }>;
-
-  // Site settings methods
-  getSiteSetting(key: string): Promise<SiteSetting | undefined>;
-  getAllSiteSettings(): Promise<SiteSetting[]>;
-  setSiteSetting(data: InsertSiteSetting): Promise<SiteSetting>;
-  deleteSiteSetting(key: string): Promise<void>;
-
-  // Statistics methods
-  getStatistics(): Promise<{
-    totalArticles: number;
-    totalUsers: number;
-    totalComments: number;
-    totalLikes: number;
-    totalBookmarks: number;
-  }>;
-}
-
-export class DatabaseStorage implements IStorage {
-  async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user || undefined;
+  async getCommentsByArticleId(articleId: number): Promise<any[]> {
+    const comments = await prisma.comment.findMany({
+      where: { articleId, isApproved: true },
+      include: { author: true },
+      orderBy: { createdAt: 'desc' },
+    });
+    return comments.map((comment: any) => ({ ...comment, author: comment.author }));
   }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.username, username));
-    return user || undefined;
-  }
-
-  async getUserByEmail(email: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.email, email));
-    return user || undefined;
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(insertUser).returning();
-    return user;
-  }
-
-  async updateUser(id: number, updates: Partial<InsertUser>): Promise<User> {
-    const [user] = await db
-      .update(users)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(users.id, id))
-      .returning();
-    return user;
-  }
-
-  async getAllUsers(): Promise<User[]> {
-    const result = await db.select().from(users);
-    return result;
-  }
-
-  async updateUserRole(id: number, role: string): Promise<User> {
-    if (!["USER", "ADMIN", "DEVELOPER"].includes(role)) {
-      throw new Error("Role tidak valid");
-    }
-    const [user] = await db
-      .update(users)
-      .set({ role: role as "USER" | "ADMIN" | "DEVELOPER" })
-      .where(eq(users.id, id))
-      .returning();
-    if (!user) throw new Error("User tidak ditemukan");
-    return user;
-  }
-
-  async getCategories(): Promise<Category[]> {
-    return await db.select().from(categories).orderBy(categories.name);
-  }
-
-  async getCategoryBySlug(slug: string): Promise<Category | undefined> {
-    const [category] = await db
-      .select()
-      .from(categories)
-      .where(eq(categories.slug, slug));
-    return category || undefined;
-  }
-
-  async createCategory(insertCategory: InsertCategory): Promise<Category> {
-    const [category] = await db
-      .insert(categories)
-      .values(insertCategory)
-      .returning();
-    return category;
-  }
-
-  async updateCategory(
-    id: number,
-    updates: Partial<InsertCategory>
-  ): Promise<Category> {
-    const [category] = await db
-      .update(categories)
-      .set(updates)
-      .where(eq(categories.id, id))
-      .returning();
-    return category;
-  }
-
-  async deleteCategory(id: number): Promise<void> {
-    await db.delete(categories).where(eq(categories.id, id));
-  }
-
-  async getArticles(
-    page: number = 1,
-    limit: number = 10,
-    categorySlug?: string,
-    search?: string,
-    published?: boolean
-  ): Promise<{ articles: ArticleWithDetails[]; total: number }> {
-    let whereConditions = [];
-
-    if (published !== undefined) {
-      whereConditions.push(eq(articles.isPublished, published));
-    }
-
-    if (categorySlug) {
-      const category = await this.getCategoryBySlug(categorySlug);
-      if (category) {
-        whereConditions.push(eq(articles.categoryId, category.id));
-      }
-    }
-
-    if (search) {
-      const searchLower = search.toLowerCase();
-      whereConditions.push(
-        or(
-          sql`LOWER(${articles.title}) LIKE ${"%" + searchLower + "%"}`,
-          sql`LOWER(${articles.content}) LIKE ${"%" + searchLower + "%"}`,
-          sql`LOWER(${articles.excerpt}) LIKE ${"%" + searchLower + "%"}`
-        )
-      );
-    }
-
-    const whereClause =
-      whereConditions.length > 0 ? and(...whereConditions) : undefined;
-
-    const [articlesResult, totalResult] = await Promise.all([
-      db
-        .select({
-          article: articles,
-          author: users,
-          category: categories,
-          likesCount: count(likes.id),
-          commentsCount: count(comments.id),
-          bookmarksCount: count(bookmarks.id),
-        })
-        .from(articles)
-        .leftJoin(users, eq(articles.authorId, users.id))
-        .leftJoin(categories, eq(articles.categoryId, categories.id))
-        .leftJoin(likes, eq(articles.id, likes.articleId))
-        .leftJoin(
-          comments,
-          and(
-            eq(articles.id, comments.articleId),
-            eq(comments.isApproved, true)
-          )
-        )
-        .leftJoin(bookmarks, eq(articles.id, bookmarks.articleId))
-        .where(whereClause)
-        .groupBy(articles.id, users.id, categories.id)
-        .orderBy(desc(articles.createdAt))
-        .limit(limit)
-        .offset((page - 1) * limit),
-
-      db.select({ count: count() }).from(articles).where(whereClause),
-    ]);
-
-    const articlesWithDetails: ArticleWithDetails[] = articlesResult.map(
-      (row) => ({
-        ...row.article,
-        author: row.author!,
-        category: row.category!,
-        _count: {
-          likes: Number(row.likesCount) || 0,
-          comments: Number(row.commentsCount) || 0,
-          bookmarks: Number(row.bookmarksCount) || 0,
-        },
-      })
-    );
-
-    return {
-      articles: articlesWithDetails,
-      total: totalResult[0]?.count || 0,
-    };
-  }
-
-  async getArticleById(id: number): Promise<ArticleWithDetails | undefined> {
-    const result = await db
-      .select({
-        article: articles,
-        author: users,
-        category: categories,
-        likesCount: count(likes.id),
-        commentsCount: count(comments.id),
-        bookmarksCount: count(bookmarks.id),
-      })
-      .from(articles)
-      .leftJoin(users, eq(articles.authorId, users.id))
-      .leftJoin(categories, eq(articles.categoryId, categories.id))
-      .leftJoin(likes, eq(articles.id, likes.articleId))
-      .leftJoin(
-        comments,
-        and(eq(articles.id, comments.articleId), eq(comments.isApproved, true))
-      )
-      .leftJoin(bookmarks, eq(articles.id, bookmarks.articleId))
-      .where(eq(articles.id, id))
-      .groupBy(articles.id, users.id, categories.id);
-
-    if (result.length === 0) return undefined;
-
-    const row = result[0];
-    return {
-      ...row.article,
-      author: row.author!,
-      category: row.category!,
-      _count: {
-        likes: Number(row.likesCount) || 0,
-        comments: Number(row.commentsCount) || 0,
-        bookmarks: Number(row.bookmarksCount) || 0,
-      },
-    };
-  }
-
-  async getArticleBySlug(
-    slug: string
-  ): Promise<ArticleWithDetails | undefined> {
-    const result = await db
-      .select({
-        article: articles,
-        author: users,
-        category: categories,
-        likesCount: count(likes.id),
-        commentsCount: count(comments.id),
-        bookmarksCount: count(bookmarks.id),
-      })
-      .from(articles)
-      .leftJoin(users, eq(articles.authorId, users.id))
-      .leftJoin(categories, eq(articles.categoryId, categories.id))
-      .leftJoin(likes, eq(articles.id, likes.articleId))
-      .leftJoin(
-        comments,
-        and(eq(articles.id, comments.articleId), eq(comments.isApproved, true))
-      )
-      .leftJoin(bookmarks, eq(articles.id, bookmarks.articleId))
-      .where(eq(articles.slug, slug))
-      .groupBy(articles.id, users.id, categories.id);
-
-    if (result.length === 0) return undefined;
-
-    const row = result[0];
-    return {
-      ...row.article,
-      author: row.author!,
-      category: row.category!,
-      _count: {
-        likes: Number(row.likesCount) || 0,
-        comments: Number(row.commentsCount) || 0,
-        bookmarks: Number(row.bookmarksCount) || 0,
-      },
-    };
-  }
-
-  async createArticle(insertArticle: InsertArticle): Promise<Article> {
-    const [article] = await db
-      .insert(articles)
-      .values(insertArticle)
-      .returning();
-    return article;
-  }
-
-  async updateArticle(
-    id: number,
-    updates: Partial<InsertArticle>
-  ): Promise<Article> {
-    const [article] = await db
-      .update(articles)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(articles.id, id))
-      .returning();
-    return article;
-  }
-
-  async deleteArticle(id: number): Promise<void> {
-    await db.delete(articles).where(eq(articles.id, id));
-  }
-
-  async getCommentsByArticleId(
-    articleId: number
-  ): Promise<CommentWithAuthor[]> {
-    const result = await db
-      .select({
-        comment: comments,
-        author: users,
-      })
-      .from(comments)
-      .leftJoin(users, eq(comments.authorId, users.id))
-      .where(
-        and(eq(comments.articleId, articleId), eq(comments.isApproved, true))
-      )
-      .orderBy(desc(comments.createdAt));
-
-    return result.map((row) => ({
-      ...row.comment,
-      author: row.author!,
-    }));
-  }
-
-  async createComment(insertComment: InsertComment): Promise<Comment> {
+  async createComment(comment: InsertComment): Promise<Comment> {
     // Daftar kata buruk/kasar/umum (bisa dikembangkan)
     const badWords = [
-      "anjing",
-      "babi",
-      "bangsat",
-      "kontol",
-      "memek",
-      "asu",
-      "goblok",
-      "tolol",
-      "idiot",
-      "bodoh",
-      "kampret",
-      "fuck",
-      "shit",
-      "bitch",
-      "bastard",
-      "dick",
-      "pussy",
-      "asshole",
-      "faggot",
-      "cunt",
-      "ngentot",
-      "pepek",
-      "jancok",
-      "tai",
-      "cok",
-      // ... tambahkan kata lain sesuai kebutuhan
+      'anjing','babi','bangsat','kontol','memek','asu','goblok','tolol','idiot','bodoh','kampret','fuck','shit','bitch','bastard','dick','pussy','asshole','faggot','cunt','ngentot','pepek','jancok','tai','cok',
     ];
 
     // Deteksi kata buruk/kasar
-    const content = insertComment.content.toLowerCase();
-    const hasBadWord = badWords.some((word) => content.includes(word));
+    const content = comment.content.toLowerCase();
+    const hasBadWord = badWords.some(word => content.includes(word));
 
     // Deteksi komentar robot/spam sederhana (bisa dikembangkan)
-    const isLikelyBot =
-      /http(s)?:\/\//.test(content) || // ada link
-      content.length < 5 || // terlalu pendek
-      /[a-zA-Z0-9]{30,}/.test(content); // string acak panjang
+    const isLikelyBot = /http(s)?:\/\//.test(content) || content.length < 5 || /[a-zA-Z0-9]{30,}/.test(content);
 
     // Otomatisasi moderasi
     let isApproved = false;
-    if (!hasBadWord && !isLikelyBot) {
-      isApproved = true;
-    }
+    if (!hasBadWord && !isLikelyBot) isApproved = true;
 
-    const [comment] = await db
-      .insert(comments)
-      .values({
-        ...insertComment,
-        isApproved,
-      })
-      .returning();
-    return comment;
+    return prisma.comment.create({ data: { ...comment, isApproved } });
   }
-
-  async updateComment(
-    id: number,
-    updates: Partial<InsertComment>
-  ): Promise<Comment> {
-    const [comment] = await db
-      .update(comments)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(comments.id, id))
-      .returning();
-    return comment;
+  async updateComment(id: number, updates: Partial<InsertComment>): Promise<Comment> {
+    return prisma.comment.update({ where: { id }, data: { ...updates, updatedAt: new Date() } });
   }
-
   async deleteComment(id: number): Promise<void> {
-    await db.delete(comments).where(eq(comments.id, id));
+    await prisma.comment.delete({ where: { id } });
   }
-
-  async getAllComments(): Promise<CommentWithAuthor[]> {
-    const result = await db
-      .select({
-        comment: comments,
-        author: users,
-      })
-      .from(comments)
-      .leftJoin(users, eq(comments.authorId, users.id))
-      .orderBy(desc(comments.createdAt));
-
-    return result.map((row) => ({
-      ...row.comment,
-      author: row.author!,
-    }));
+  async getAllComments(): Promise<any[]> {
+    const comments = await prisma.comment.findMany({ include: { author: true }, orderBy: { createdAt: 'desc' } });
+    return comments.map((comment: any) => ({ ...comment, author: comment.author }));
   }
-
+  async getPendingComments(): Promise<any[]> {
+    const comments = await prisma.comment.findMany({ where: { isApproved: false }, include: { author: true }, orderBy: { createdAt: 'desc' } });
+    return comments.map((comment: any) => ({ ...comment, author: comment.author }));
+  }
   async getUserById(id: number): Promise<User | null> {
-    // Select semua kolom, pastikan password ikut diambil
-    const [user] = await db
-      .select({
-        id: users.id,
-        username: users.username,
-        email: users.email,
-        password: users.password,
-        role: users.role,
-        fullName: users.fullName,
-        avatar: users.avatar,
-        isActive: users.isActive,
-        createdAt: users.createdAt,
-        updatedAt: users.updatedAt,
-      })
-      .from(users)
-      .where(eq(users.id, id));
-    return user || null;
+    return prisma.user.findUnique({ where: { id } });
   }
 
-  async getPendingComments(): Promise<CommentWithAuthor[]> {
-    const result = await db
-      .select({
-        comment: comments,
-        author: users,
-      })
-      .from(comments)
-      .leftJoin(users, eq(comments.authorId, users.id))
-      .where(eq(comments.isApproved, false))
-      .orderBy(desc(comments.createdAt));
-
-    return result.map((row) => ({
-      ...row.comment,
-      author: row.author!,
-    }));
-  }
-
+  // Like methods
   async toggleLike(userId: number, articleId: number): Promise<boolean> {
-    const [existingLike] = await db
-      .select()
-      .from(likes)
-      .where(and(eq(likes.userId, userId), eq(likes.articleId, articleId)));
-
-    if (existingLike) {
-      await db.delete(likes).where(eq(likes.id, existingLike.id));
-      return false;
-    } else {
-      await db.insert(likes).values({ userId, articleId });
-      return true;
-    }
-  }
-
-  async getUserLikes(userId: number): Promise<Like[]> {
-    return await db.select().from(likes).where(eq(likes.userId, userId));
-  }
-
-  async toggleBookmark(userId: number, articleId: number): Promise<boolean> {
-    const [existingBookmark] = await db
-      .select()
-      .from(bookmarks)
-      .where(
-        and(eq(bookmarks.userId, userId), eq(bookmarks.articleId, articleId))
-      );
-
-    if (existingBookmark) {
-      await db.delete(bookmarks).where(eq(bookmarks.id, existingBookmark.id));
-      return false;
-    } else {
-      await db.insert(bookmarks).values({ userId, articleId });
-      return true;
-    }
-  }
-
-  async getUserBookmarks(
-    userId: number,
-    page: number = 1,
-    limit: number = 10
-  ): Promise<{ bookmarks: ArticleWithDetails[]; total: number }> {
-    const [bookmarksResult, totalResult] = await Promise.all([
-      db
-        .select({
-          article: articles,
-          author: users,
-          category: categories,
-          likesCount: count(likes.id),
-          commentsCount: count(comments.id),
-          bookmarksCount: count(bookmarks.id),
-        })
-        .from(bookmarks)
-        .leftJoin(articles, eq(bookmarks.articleId, articles.id))
-        .leftJoin(users, eq(articles.authorId, users.id))
-        .leftJoin(categories, eq(articles.categoryId, categories.id))
-        .leftJoin(likes, eq(articles.id, likes.articleId))
-        .leftJoin(
-          comments,
-          and(
-            eq(articles.id, comments.articleId),
-            eq(comments.isApproved, true)
-          )
-        )
-        .where(eq(bookmarks.userId, userId))
-        .groupBy(articles.id, users.id, categories.id, bookmarks.id)
-        .orderBy(desc(bookmarks.createdAt))
-        .limit(limit)
-        .offset((page - 1) * limit),
-
-      db
-        .select({ count: count() })
-        .from(bookmarks)
-        .where(eq(bookmarks.userId, userId)),
-    ]);
-
-    const bookmarksWithDetails: ArticleWithDetails[] = bookmarksResult.map(
-      (row) => ({
-        ...row.article!,
-        author: row.author!,
-        category: row.category!,
-        _count: {
-          likes: Number(row.likesCount) || 0,
-          comments: Number(row.commentsCount) || 0,
-          bookmarks: Number(row.bookmarksCount) || 0,
-        },
-      })
-    );
-
-    return {
-      bookmarks: bookmarksWithDetails,
-      total: totalResult[0]?.count || 0,
-    };
-  }
-
-  async getSiteSetting(key: string): Promise<SiteSetting | undefined> {
-    const [setting] = await db
-      .select()
-      .from(siteSettings)
-      .where(eq(siteSettings.key, key));
-    return setting || undefined;
-  }
-
-  async getAllSiteSettings(): Promise<SiteSetting[]> {
-    return await db.select().from(siteSettings).orderBy(siteSettings.key);
-  }
-
-  async setSiteSetting(data: InsertSiteSetting): Promise<SiteSetting> {
-    const existing = await this.getSiteSetting(data.key);
-
+    const existing = await prisma.like.findFirst({ where: { userId, articleId } });
     if (existing) {
-      // Update existing setting
-      const result = await db
-        .update(siteSettings)
-        .set({
-          value: data.value,
-          description: data.description,
-          updatedAt: new Date(),
-        })
-        .where(eq(siteSettings.key, data.key))
-        .returning();
-      return result[0];
+      await prisma.like.delete({ where: { id: existing.id } });
+      return false;
     } else {
-      // Create new setting
-      const result = await db.insert(siteSettings).values(data).returning();
-      return result[0];
+      await prisma.like.create({ data: { userId, articleId } });
+      return true;
     }
   }
-
-  async deleteSiteSetting(key: string): Promise<void> {
-    await db.delete(siteSettings).where(eq(siteSettings.key, key));
+  async getUserLikes(userId: number): Promise<Like[]> {
+    return prisma.like.findMany({ where: { userId } });
   }
 
-  async getStatistics(): Promise<{
-    totalArticles: number;
-    totalUsers: number;
-    totalComments: number;
-    totalLikes: number;
-    totalBookmarks: number;
-  }> {
-    const [articlesCount] = await db.select({ count: count() }).from(articles);
-    const [usersCount] = await db.select({ count: count() }).from(users);
-    const [commentsCount] = await db.select({ count: count() }).from(comments);
-    const [likesCount] = await db.select({ count: count() }).from(likes);
-    const [bookmarksCount] = await db
-      .select({ count: count() })
-      .from(bookmarks);
+  // Bookmark methods
+  async toggleBookmark(userId: number, articleId: number): Promise<boolean> {
+    const existing = await prisma.bookmark.findFirst({ where: { userId, articleId } });
+    if (existing) {
+      await prisma.bookmark.delete({ where: { id: existing.id } });
+      return false;
+    } else {
+      await prisma.bookmark.create({ data: { userId, articleId } });
+      return true;
+    }
+  }
+  async getUserBookmarks(userId: number, page = 1, limit = 10): Promise<{ bookmarks: any[]; total: number }> {
+    const [bookmarks, total] = await Promise.all([
+      prisma.bookmark.findMany({
+        where: { userId },
+        include: { article: { include: { author: true, category: true, likes: true, comments: true, bookmarks: true } } },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.bookmark.count({ where: { userId } }),
+    ]);
+    const bookmarksWithDetails = bookmarks.map((b: any) => ({
+      ...b.article,
+      _count: {
+        likes: b.article.likes.length,
+        comments: b.article.comments.filter((c: any) => c.isApproved).length,
+        bookmarks: b.article.bookmarks.length,
+      },
+    }));
+    return { bookmarks: bookmarksWithDetails, total };
+  }
 
+  // Site settings methods
+  async getSiteSetting(key: string): Promise<SiteSetting | null> {
+    return prisma.siteSetting.findUnique({ where: { key } });
+  }
+  async getAllSiteSettings(): Promise<SiteSetting[]> {
+    return prisma.siteSetting.findMany({ orderBy: { key: 'asc' } });
+  }
+  async setSiteSetting(data: InsertSiteSetting): Promise<SiteSetting> {
+    const existing = await prisma.siteSetting.findUnique({ where: { key: data.key } });
+    const valueString = typeof data.value === 'string' ? data.value : JSON.stringify(data.value);
+    if (existing) {
+      return prisma.siteSetting.update({ where: { key: data.key }, data: { ...data, value: valueString, updatedAt: new Date() } });
+    } else {
+      return prisma.siteSetting.create({ data: { ...data, value: valueString } });
+    }
+  }
+  async deleteSiteSetting(key: string): Promise<void> {
+    await prisma.siteSetting.delete({ where: { key } });
+  }
+
+  // Statistics methods
+  async getStatistics(): Promise<{ totalArticles: number; totalUsers: number; totalComments: number; totalLikes: number; totalBookmarks: number; }> {
+    const [totalArticles, totalUsers, totalComments, totalLikes, totalBookmarks] = await Promise.all([
+      prisma.article.count(),
+      prisma.user.count(),
+      prisma.comment.count(),
+      prisma.like.count(),
+      prisma.bookmark.count(),
+    ]);
     return {
-      totalArticles: Number(articlesCount.count) || 0,
-      totalUsers: Number(usersCount.count) || 0,
-      totalComments: Number(commentsCount.count) || 0,
-      totalLikes: Number(likesCount.count) || 0,
-      totalBookmarks: Number(bookmarksCount.count) || 0,
+      totalArticles,
+      totalUsers,
+      totalComments,
+      totalLikes,
+      totalBookmarks,
     };
   }
 }

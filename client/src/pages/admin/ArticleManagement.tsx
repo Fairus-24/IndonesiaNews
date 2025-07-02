@@ -75,9 +75,9 @@ export default function ArticleManagement() {
     queryFn: async () => {
       let url = "/api/articles";
       if (pageSize === "all") {
-        url = "/api/articles";
+        url = "/api/articles?published=false";
       } else {
-        url = `/api/articles?page=${page}&limit=${pageSize}`;
+        url = `/api/articles?page=${page}&limit=${pageSize}&published=false`;
       }
       const response = await apiRequest("GET", url);
       const data = await response.json();
@@ -174,7 +174,18 @@ export default function ArticleManagement() {
 
   // Delete article mutation
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => apiRequest("DELETE", `/api/articles/${id}`),
+    mutationFn: async (id: number) => {
+      try {
+        const response = await apiRequest("DELETE", `/api/articles/${id}`);
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.message || "Gagal menghapus artikel");
+        }
+        return response;
+      } catch (error) {
+        throw error;
+      }
+    },
     onSuccess: () => {
       toast({
         title: "Berhasil",
@@ -182,12 +193,14 @@ export default function ArticleManagement() {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/articles"] });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Gagal menghapus artikel",
+        description: error?.message || (typeof error === 'string' ? error : "Gagal menghapus artikel"),
         variant: "destructive",
       });
+      // Optional: log error detail
+      if (error) console.error("Delete article error:", error);
     },
   });
 
@@ -234,6 +247,7 @@ export default function ArticleManagement() {
     
 
   const handleDelete = (id: number) => {
+    if (deleteMutation.isPending) return;
     if (confirm("Apakah Anda yakin ingin menghapus artikel ini?")) {
       deleteMutation.mutate(id);
     }

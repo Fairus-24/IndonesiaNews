@@ -31,13 +31,13 @@ export default function Login() {
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get("token");
     const error = urlParams.get("error");
-    
+
     if (token) {
       // Store token and redirect
       localStorage.setItem("token", token);
       window.location.href = "/";
     }
-    
+
     if (error) {
       // Handle error (you can show a toast here)
       console.error("Google login failed:", error);
@@ -104,7 +104,7 @@ export default function Login() {
             Selamat datang kembali di Semua Tentang Indonesia
           </p>
         </CardHeader>
-        
+
         <CardContent className="space-y-6">
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <div>
@@ -141,10 +141,7 @@ export default function Login() {
 
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="remember"
-                  {...form.register("remember")}
-                />
+                <Checkbox id="remember" {...form.register("remember")} />
                 <Label htmlFor="remember" className="text-sm">
                   Ingat saya
                 </Label>
@@ -214,8 +211,19 @@ export default function Login() {
 
           {/* Demo Login Buttons */}
           <div className="pt-6 border-t border-gray-200">
-            <p className="text-sm text-gray-600 mb-3 text-center">Demo Login:</p>
+            <p className="text-sm text-gray-600 mb-3 text-center">
+              Demo Login:
+            </p>
             <div className="space-y-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={() => demoLogin("demo@example.com", "demo123")}
+                disabled={isLoading}
+              >
+                Masuk sebagai User
+              </Button>
               <Button
                 variant="outline"
                 size="sm"

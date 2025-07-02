@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { pool } from "./db";
+import { prisma } from "./db";
 
 async function runMigrations() {
   const migrationsDir = path.join(__dirname, "migrations");
@@ -12,7 +12,8 @@ async function runMigrations() {
     const sql = fs.readFileSync(filePath, "utf8");
     console.log(`Menjalankan migrasi: ${file}`);
     try {
-      await pool.query(sql);
+      // Gunakan queryRaw dari Prisma
+      await prisma.$executeRawUnsafe(sql);
       console.log(`Sukses: ${file}`);
     } catch (err) {
       console.error(`Gagal migrasi ${file}:`, err);

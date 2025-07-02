@@ -1,0 +1,108 @@
+// Prisma schema for MySQL (phpMyAdmin/XAMPP)
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  email     String   @unique
+  password  String
+  role      String   @default("USER")
+  fullName  String
+  avatar    String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  articles  Article[] @relation("UserArticles")
+  comments  Comment[] @relation("UserComments")
+  likes     Like[]    @relation("UserLikes")
+  bookmarks Bookmark[] @relation("UserBookmarks")
+}
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  slug      String   @unique
+  description String?
+  color     String   @default("#DC2626")
+  createdAt DateTime @default(now())
+  articles  Article[]
+}
+
+model Article {
+  id          Int      @id @default(autoincrement())
+  title       String
+  slug        String   @unique
+  excerpt     String
+  content     String
+  coverImage  String?
+  authorId    Int
+  categoryId  Int
+  isPublished Boolean  @default(false)
+  publishedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  author      User     @relation("UserArticles", fields: [authorId], references: [id])
+  category    Category @relation(fields: [categoryId], references: [id])
+  comments    Comment[] @relation("ArticleComments")
+  likes       Like[]    @relation("ArticleLikes")
+  bookmarks   Bookmark[] @relation("ArticleBookmarks")
+}
+
+model Comment {
+  id         Int      @id @default(autoincrement())
+  content    String
+  authorId   Int
+  articleId  Int
+  isApproved Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  author     User     @relation("UserComments", fields: [authorId], references: [id])
+  article    Article  @relation("ArticleComments", fields: [articleId], references: [id], onDelete: Cascade)
+}
+
+model Like {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  articleId Int
+  createdAt DateTime @default(now())
+
+  user      User     @relation("UserLikes", fields: [userId], references: [id])
+  article   Article  @relation("ArticleLikes", fields: [articleId], references: [id], onDelete: Cascade)
+}
+
+model Bookmark {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  articleId Int
+  createdAt DateTime @default(now())
+
+  user      User     @relation("UserBookmarks", fields: [userId], references: [id])
+  article   Article  @relation("ArticleBookmarks", fields: [articleId], references: [id], onDelete: Cascade)
+}
+
+model SiteSetting {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique
+  value       String   // gunakan JSON.stringify untuk value object
+  description String?
+  updatedAt   DateTime @updatedAt
+}
+
+model UserLog {
+  id            Int      @id @default(autoincrement())
+  actorId       Int
+  targetUserId  Int
+  action        String
+  detail        String?
+  createdAt     DateTime @default(now())
+}

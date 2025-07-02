@@ -41,7 +41,10 @@ export default function DatabaseManager() {
           Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
         },
       });
-      if (!res.ok) throw new Error("Gagal menghapus data");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || "Gagal menghapus data");
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -54,7 +57,7 @@ export default function DatabaseManager() {
   const upsertMutation = useMutation({
     mutationFn: async (data: any) => {
       const res = await fetch(`/api/dev/db?table=${activeTable}`, {
-        method: data.id ? "PUT" : "POST",
+        method: "PUT",
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
@@ -62,7 +65,10 @@ export default function DatabaseManager() {
         },
         body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error("Gagal menyimpan data");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || "Gagal menyimpan data");
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -77,7 +83,7 @@ export default function DatabaseManager() {
     <Card className="mb-8">
       <CardHeader>
         <CardTitle>Manajemen Database</CardTitle>
-        <Button size="sm" className="ml-2" onClick={() => setShowAdd(true)}>Tambah Data</Button>
+        {/* <Button size="sm" className="ml-2" onClick={() => setShowAdd(true)}>Tambah Data</Button> */}
       </CardHeader>
       <CardContent>
         <Tabs value={activeTable} onValueChange={setActiveTable} className="mb-4">
@@ -140,12 +146,14 @@ export default function DatabaseManager() {
         </DialogContent>
       </Dialog>
       {/* Add Dialog */}
+      {/*
       <Dialog open={showAdd} onOpenChange={v => !v && setShowAdd(false)}>
         <DialogContent>
           <DialogHeader><DialogTitle>Tambah Data</DialogTitle></DialogHeader>
           <EditForm row={{}} columns={dbData.columns} onSave={upsertMutation.mutate} onCancel={() => setShowAdd(false)} />
         </DialogContent>
       </Dialog>
+      */}
     </Card>
   );
 }
@@ -154,14 +162,14 @@ export default function DatabaseManager() {
 function EditForm({ row, columns, onSave, onCancel }: { row: any, columns: string[], onSave: (data: any) => void, onCancel: () => void }) {
   const { register, handleSubmit } = useForm({ defaultValues: row });
   return (
-    <form onSubmit={handleSubmit(onSave)} className="space-y-2">
+    <form onSubmit={handleSubmit(onSave)} className="space-y-2 w-full max-w-md mx-auto grid grid-cols-1 gap-3">
       {columns.filter(col => col !== "id").map(col => (
-        <div key={col}>
-          <label className="block text-xs font-bold mb-1">{col}</label>
-          <Input {...register(col)} />
+        <div key={col} className="flex flex-col">
+          <label className="block text-xs font-bold mb-1" htmlFor={col}>{col}</label>
+          <Input {...register(col)} id={col} className="w-full" />
         </div>
       ))}
-      <DialogFooter>
+      <DialogFooter className="flex flex-row gap-2 justify-end">
         <Button type="button" variant="outline" onClick={onCancel}>Batal</Button>
         <Button type="submit">Simpan</Button>
       </DialogFooter>
