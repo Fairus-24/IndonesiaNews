@@ -20,6 +20,8 @@ import CommentModeration from "@/pages/admin/CommentModeration";
 import DeveloperSettings from "@/pages/developer/Settings";
 import NotFound from "@/pages/not-found";
 import SearchPage from "@/pages/search";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
 import { useEffect } from "react";
 import { useLocation } from "wouter";
 
@@ -56,6 +58,8 @@ function Router() {
               <Route path="/admin/comments" component={CommentModeration} />
               <Route path="/dev" component={DeveloperSettings} />
               <Route path="/search" component={SearchPage} />
+              <Route path="/forgot-password" component={ForgotPassword} />
+              <Route path="/reset-password" component={ResetPassword} />
               <Route component={NotFound} />
             </Switch>
           </div>

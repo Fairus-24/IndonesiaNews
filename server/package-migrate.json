@@ -1,0 +1,10 @@
+{
+  "name": "indonesianews-server-migrate",
+  "scripts": {
+    "migrate": "ts-node migrate.ts"
+  },
+  "dependencies": {
+    "@types/node": "*",
+    "ts-node": "*"
+  }
+}

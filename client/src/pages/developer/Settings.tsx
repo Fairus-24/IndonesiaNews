@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -25,6 +25,8 @@ import {
   Eye,
   EyeOff
 } from "lucide-react";
+import DatabaseManager from "./Database";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 
 const siteSettingSchema = z.object({
   key: z.string().min(1, "Key diperlukan"),
@@ -56,6 +58,11 @@ export default function DeveloperSettings() {
       description: "",
     },
   });
+
+  // State untuk dialog konfirmasi password
+  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; userId?: number; role?: string }>({ open: false });
+  const [passwordInput, setPasswordInput] = useState("");
+  const [passwordError, setPasswordError] = useState("");
 
   // Fetch current settings
   const { data: currentSettings = [] } = useQuery({
@@ -152,7 +159,7 @@ export default function DeveloperSettings() {
     setting.key.startsWith('enable_') || setting.key.startsWith('maintenance_')
   );
 
-  // Fetch real system info
+  // Ambil info sistem (systemInfo) dari backend
   const { data: systemInfo, isLoading: systemLoading } = useQuery({
     queryKey: ["/api/dev/logs"],
     queryFn: async () => {
@@ -184,6 +191,54 @@ export default function DeveloperSettings() {
     refetchInterval: 5000, // Refresh every 5 seconds
   });
 
+  // Fetch users
+  const { data: users = [], isLoading: usersLoading } = useQuery({
+    queryKey: ["/api/dev/users"],
+    queryFn: async () => {
+      const response = await fetch("/api/dev/users", {
+        credentials: "include",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+        },
+      });
+      if (!response.ok) throw new Error("Failed to fetch users");
+      return response.json();
+    },
+  });
+
+  // Mutasi update role user dengan password
+  const updateRoleMutation = useMutation({
+    mutationFn: async ({ id, role, password }: { id: number; role: string; password: string }) => {
+      return apiRequest("POST", `/api/dev/users/${id}/role`, { role, password });
+    },
+    onSuccess: () => {
+      toast({ title: "Berhasil", description: "Role pengguna berhasil diubah" });
+      setConfirmDialog({ open: false });
+      setPasswordInput("");
+      setPasswordError("");
+      queryClient.invalidateQueries({ queryKey: ["/api/dev/users"] });
+    },
+    onError: (error: any) => {
+      setPasswordError(error.message || "Password salah atau gagal mengubah role");
+    },
+  });
+
+  // Fetch user logs (audit trail)
+  const { data: userLogs = [], isLoading: logsLoading } = useQuery({
+    queryKey: ["/api/dev/user-logs"],
+    queryFn: async () => {
+      const response = await fetch("/api/dev/user-logs", {
+        credentials: "include",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+        },
+      });
+      if (!response.ok) throw new Error("Failed to fetch user logs");
+      return response.json();
+    },
+    refetchInterval: 10000,
+  });
+
   return (
     <ProtectedRoute roles={["DEVELOPER"]}>
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -202,11 +257,13 @@ export default function DeveloperSettings() {
 
         {/* Main Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="site">Pengaturan Situs</TabsTrigger>
-            <TabsTrigger value="features">Feature Flags</TabsTrigger>
-            <TabsTrigger value="system">Info Sistem</TabsTrigger>
-            <TabsTrigger value="logs">Logs</TabsTrigger>
+          <TabsList className="flex flex-wrap gap-2 bg-white p-2 rounded-lg shadow mb-6">
+            <TabsTrigger value="site" className="flex-1 min-w-[120px] px-4 py-2 rounded-lg font-semibold data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=inactive]:bg-gray-100 data-[state=inactive]:text-gray-700 transition-all">Pengaturan Situs</TabsTrigger>
+            <TabsTrigger value="features" className="flex-1 min-w-[120px] px-4 py-2 rounded-lg font-semibold data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=inactive]:bg-gray-100 data-[state=inactive]:text-gray-700 transition-all">Feature Flags</TabsTrigger>
+            <TabsTrigger value="system" className="flex-1 min-w-[120px] px-4 py-2 rounded-lg font-semibold data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=inactive]:bg-gray-100 data-[state=inactive]:text-gray-700 transition-all">Info Sistem</TabsTrigger>
+            <TabsTrigger value="logs" className="flex-1 min-w-[120px] px-4 py-2 rounded-lg font-semibold data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=inactive]:bg-gray-100 data-[state=inactive]:text-gray-700 transition-all">Logs</TabsTrigger>
+            <TabsTrigger value="database" className="flex-1 min-w-[120px] px-4 py-2 rounded-lg font-semibold data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=inactive]:bg-gray-100 data-[state=inactive]:text-gray-700 transition-all">Database</TabsTrigger>
+            <TabsTrigger value="users" className="flex-1 min-w-[120px] px-4 py-2 rounded-lg font-semibold data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=inactive]:bg-gray-100 data-[state=inactive]:text-gray-700 transition-all">Pengguna</TabsTrigger>
           </TabsList>
 
           {/* Site Settings Tab */}
@@ -490,14 +547,14 @@ export default function DeveloperSettings() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">DATABASE_URL</span>
-                        <span className="font-medium font-mono text-sm ml-auto text-right w-full block">
-                        {showSecrets ? " postgresql://neondb_owner:npg_XiHCe6A9RQDp@ep-delicate-frost-a21etxv3.eu-central-1.aws.neon.tech/neondb?sslmode=require" : "••••••••••••••••"}
-                        </span>
+                      <span className="font-medium font-mono text-sm ml-auto text-right w-full block">
+                        {showSecrets ? (systemInfo?.databaseUrl || "-") : "••••••••••••••••"}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">JWT_SECRET</span>
                       <span className="font-medium font-mono text-sm">
-                        {showSecrets ? "33484a848b1a2fbc" : "••••••••••••••••"}
+                        {showSecrets ? (systemInfo?.jwtSecret || "-") : "••••••••••••••••"}
                       </span>
                     </div>
                     <div className="flex justify-between">
@@ -554,6 +611,144 @@ export default function DeveloperSettings() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Database Tab */}
+          <TabsContent value="database" className="space-y-6">
+            <DatabaseManager />
+          </TabsContent>
+
+          {/* Users Tab */}
+          <TabsContent value="users">
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>Manajemen Pengguna</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {usersLoading ? (
+                <div>Loading...</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full border text-xs">
+                    <thead>
+                      <tr>
+                        <th className="border px-2 py-1">ID</th>
+                        <th className="border px-2 py-1">Username</th>
+                        <th className="border px-2 py-1">Email</th>
+                        <th className="border px-2 py-1">Nama</th>
+                        <th className="border px-2 py-1">Role</th>
+                        <th className="border px-2 py-1">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {users.map((user: any) => (
+                        <tr key={user.id}>
+                          <td className="border px-2 py-1">{user.id}</td>
+                          <td className="border px-2 py-1">{user.username}</td>
+                          <td className="border px-2 py-1">{user.email}</td>
+                          <td className="border px-2 py-1">{user.fullName}</td>
+                          <td className="border px-2 py-1">
+                            <span className="font-bold text-xs px-2 py-1 rounded bg-gray-200">
+                              {user.role}
+                            </span>
+                          </td>
+                          <td className="border px-2 py-1">
+                            {["USER", "ADMIN", "DEVELOPER"].map((role) => (
+                              <Button
+                                key={role}
+                                size="sm"
+                                variant={user.role === role ? "default" : "outline"}
+                                className="mr-1 mb-1"
+                                disabled={user.role === role || updateRoleMutation.isPending}
+                                onClick={() => setConfirmDialog({ open: true, userId: user.id, role })}
+                              >
+                                Jadikan {role}
+                              </Button>
+                            ))}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          {/* Log perubahan role user, tampil mirip log server */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>Log Perubahan Role Pengguna</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="bg-black text-green-400 p-4 rounded-lg font-mono text-xs h-80 overflow-y-auto">
+                <div className="space-y-1">
+                  {logsLoading ? (
+                    <div className="text-gray-400">Loading log...</div>
+                  ) : userLogs.length === 0 ? (
+                    <div className="text-gray-400">Belum ada log perubahan role.</div>
+                  ) : (
+                    userLogs.map((log: any) => {
+                      let color = "text-green-400";
+                      if (log.action === "change_role") color = "text-yellow-400";
+                      // Bisa tambah warna lain jika ada aksi lain
+                      return (
+                        <div key={log.id} className={color}>
+                          [ {new Date(log.createdAt).toLocaleString("id-ID")} ]
+                          {" "}
+                          <span className="text-cyan-300">{log.actorName || log.actorId}</span>
+                          {" mengubah role "}
+                          <span className="text-blue-300">{log.targetName || log.targetUserId}</span>
+                          {": "}
+                          <span className="text-white">{log.detail}</span>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          {/* Dialog konfirmasi password */}
+          <Dialog open={confirmDialog.open} onOpenChange={open => setConfirmDialog(v => ({ ...v, open }))}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Konfirmasi Ganti Role</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-2">
+                <Label htmlFor="password-confirm">Masukkan kata sandi akun Anda untuk konfirmasi perubahan role pengguna.</Label>
+                <Input
+                  id="password-confirm"
+                  type="password"
+                  placeholder="Kata sandi akun Anda"
+                  value={passwordInput}
+                  onChange={e => setPasswordInput(e.target.value)}
+                  autoFocus
+                />
+                {passwordError && <div className="text-red-500 text-xs">{passwordError}</div>}
+              </div>
+              <DialogFooter>
+                <Button
+                  onClick={() => {
+                    if (!passwordInput) {
+                      setPasswordError("Kata sandi diperlukan");
+                      return;
+                    }
+                    setPasswordError("");
+                    if (confirmDialog.userId && confirmDialog.role) {
+                      updateRoleMutation.mutate({ id: confirmDialog.userId, role: confirmDialog.role, password: passwordInput });
+                    }
+                  }}
+                  disabled={updateRoleMutation.isPending}
+                >
+                  {updateRoleMutation.isPending ? <Loader2 className="animate-spin h-4 w-4 mr-2 inline" /> : null}
+                  Konfirmasi
+                </Button>
+                <DialogClose asChild>
+                  <Button variant="outline" type="button">Batal</Button>
+                </DialogClose>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </TabsContent>
         </Tabs>
       </main>
     </ProtectedRoute>

@@ -33,6 +33,8 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, updates: Partial<InsertUser>): Promise<User>;
+  getAllUsers(): Promise<User[]>;
+  updateUserRole(id: number, role: string): Promise<User>;
 
   // Category methods
   getCategories(): Promise<Category[]>;
@@ -126,6 +128,24 @@ export class DatabaseStorage implements IStorage {
       .set({ ...updates, updatedAt: new Date() })
       .where(eq(users.id, id))
       .returning();
+    return user;
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    const result = await db.select().from(users);
+    return result;
+  }
+
+  async updateUserRole(id: number, role: string): Promise<User> {
+    if (!["USER", "ADMIN", "DEVELOPER"].includes(role)) {
+      throw new Error("Role tidak valid");
+    }
+    const [user] = await db
+      .update(users)
+      .set({ role: role as "USER" | "ADMIN" | "DEVELOPER" })
+      .where(eq(users.id, id))
+      .returning();
+    if (!user) throw new Error("User tidak ditemukan");
     return user;
   }
 
@@ -395,6 +415,9 @@ export class DatabaseStorage implements IStorage {
       "cunt",
       "ngentot",
       "pepek",
+      "jancok",
+      "tai",
+      "cok",
       // ... tambahkan kata lain sesuai kebutuhan
     ];
 
@@ -457,11 +480,24 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserById(id: number): Promise<User | null> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
+    // Select semua kolom, pastikan password ikut diambil
+    const [user] = await db
+      .select({
+        id: users.id,
+        username: users.username,
+        email: users.email,
+        password: users.password,
+        role: users.role,
+        fullName: users.fullName,
+        avatar: users.avatar,
+        isActive: users.isActive,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
+      })
+      .from(users)
+      .where(eq(users.id, id));
     return user || null;
   }
-
-  // Duplicate removed. Only one updateUser remains.
 
   async getPendingComments(): Promise<CommentWithAuthor[]> {
     const result = await db

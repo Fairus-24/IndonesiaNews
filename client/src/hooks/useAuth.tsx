@@ -3,6 +3,7 @@ import { User, AuthResponse } from "@/types";
 import { getToken, setToken, removeToken, getUser, setUser } from "@/lib/auth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 
 interface AuthContextType {
   user: User | null;
@@ -26,6 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUserState] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const [, navigate] = useLocation();
 
   useEffect(() => {
     const initAuth = async () => {
@@ -104,6 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       title: "Logout Berhasil",
       description: "Anda telah keluar dari akun",
     });
+    navigate("/");
   };
 
   return (
