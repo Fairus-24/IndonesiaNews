@@ -54,7 +54,9 @@ paginate: true
 
 ## Flowchart Sistem
 
-![Flowchart](https://raw.githubusercontent.com/Fairus-24/IndonesiaNews/refs/heads/main/client/src/assets/flowchart.png)
+![Flowchart 1](https://raw.githubusercontent.com/Fairus-24/IndonesiaNews/refs/heads/main/client/src/assets/flowchart.png)
+
+![Flowchart 2](https://raw.githubusercontent.com/Fairus-24/IndonesiaNews/refs/heads/main/client/src/assets/flowchart2.png)
 <!-- Gambar flowchart, bisa digambar di draw.io lalu di-insert di sini -->
 
 ---
