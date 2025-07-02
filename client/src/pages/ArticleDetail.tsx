@@ -299,7 +299,7 @@ export default function ArticleDetail() {
                 <div className="relative">
                   <Textarea
                     placeholder="Tulis komentar Anda..."
-                    {...commentForm.register("content")}
+                    {...commentForm.register("content", { required: true })}
                     rows={4}
                     ref={textareaRef}
                   />
@@ -338,6 +338,7 @@ export default function ArticleDetail() {
                       />
                     </div>
                   )}
+                  {/* Pastikan error hanya muncul jika memang kosong */}
                   {commentForm.formState.errors.content && (
                     <p className="text-sm text-red-600 mt-1">
                       {commentForm.formState.errors.content.message}
