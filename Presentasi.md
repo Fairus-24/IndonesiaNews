@@ -317,3 +317,489 @@ Portal Berita IndonesiaNews berhasil dibangun dengan fitur lengkap, arsitektur m
 ---
 
 Makalah ini dapat digunakan sebagai dokumentasi, laporan, atau lampiran presentasi proyek.
+
+---
+
+## Penjelasan Bagian-Bagian Kode & Fungsinya
+
+### 1. Frontend (React)
+- **App.tsx**
+  - Fungsi: Entry point aplikasi, routing antar halaman (Home, Detail, Login, Register, Admin, dsb).
+  - Kegunaan: Mengatur navigasi dan layout utama aplikasi.
+
+- **components/Navbar.tsx & Footer.tsx**
+  - Fungsi: Komponen navigasi utama dan footer di setiap halaman.
+  - Kegunaan: Memudahkan user berpindah halaman, menampilkan info penting.
+
+- **pages/Home.tsx**
+  - Fungsi: Menampilkan slider artikel unggulan, berita populer, kategori, dan daftar artikel.
+  - Kegunaan: Halaman utama yang menjadi pusat akses berita dan fitur pencarian/kategori.
+
+- **pages/ArticleDetail.tsx**
+  - Fungsi: Menampilkan detail artikel, komentar, tombol like/bookmark, form komentar dengan emoji.
+  - Kegunaan: Membaca artikel lengkap, interaksi user (komentar, like, bookmark).
+
+- **pages/admin/**
+  - Fungsi: Halaman admin untuk manajemen artikel, moderasi komentar, statistik, pengaturan situs.
+  - Kegunaan: Hanya untuk admin/developer, mengelola seluruh konten dan fitur aplikasi.
+
+- **components/ArticleCard.tsx**
+  - Fungsi: Komponen kartu artikel untuk list/grid di Home dan kategori.
+  - Kegunaan: Menampilkan ringkasan artikel secara konsisten.
+
+- **lib/siteSettings.tsx**
+  - Fungsi: Context/provider untuk site settings & feature flags.
+  - Kegunaan: Mengatur fitur aktif/tidak dari frontend.
+
+- **hooks/useAuth.tsx**
+  - Fungsi: Custom hook untuk autentikasi user (login, logout, cek status).
+  - Kegunaan: Mengelola state user di frontend.
+
+- **lib/queryClient.ts**
+  - Fungsi: Setup React Query untuk fetch/mutate data ke backend.
+  - Kegunaan: Optimasi pengambilan data dan cache.
+
+---
+
+### 2. Backend (Express.js)
+- **server/index.ts**
+  - Fungsi: Entry point backend, setup server, middleware, routing.
+  - Kegunaan: Menjalankan server API dan mengatur request/response.
+
+- **server/routes.ts**
+  - Fungsi: Mendefinisikan endpoint API (artikel, kategori, komentar, settings, upload).
+  - Kegunaan: Mengatur jalur komunikasi data antara frontend dan database.
+
+- **server/db.ts**
+  - Fungsi: Setup koneksi database dengan Drizzle ORM.
+  - Kegunaan: Menghubungkan backend ke database (SQLite/PostgreSQL).
+
+- **server/middleware/auth.ts**
+  - Fungsi: Middleware autentikasi JWT, cek role user.
+  - Kegunaan: Melindungi endpoint penting dari akses tidak sah.
+
+- **server/services/upload.ts**
+  - Fungsi: Proses upload file (gambar artikel) ke storage.
+  - Kegunaan: Menyimpan file dan mengembalikan URL ke frontend.
+
+---
+
+### 3. Shared & Utilities
+- **shared/schema.ts**
+  - Fungsi: Mendefinisikan skema data (User, Article, Category, Comment, Settings) untuk validasi dan ORM.
+  - Kegunaan: Menjamin konsistensi struktur data di seluruh aplikasi.
+
+- **client/src/types/index.ts**
+  - Fungsi: Tipe data TypeScript untuk seluruh entitas aplikasi.
+  - Kegunaan: Memastikan type safety dan autocompletion di frontend.
+
+- **client/src/hooks/use-toast.ts**
+  - Fungsi: Custom hook untuk notifikasi toast.
+  - Kegunaan: Memberi feedback ke user (sukses/gagal aksi).
+
+---
+
+### 4. Maksud, Tujuan, dan Kegunaan Setiap Bagian
+- **Frontend:**
+  - Menyajikan UI/UX interaktif, responsif, dan mudah digunakan.
+  - Mengelola state aplikasi, autentikasi, dan komunikasi ke backend.
+- **Backend:**
+  - Menyediakan API yang aman, efisien, dan terstruktur.
+  - Mengelola data, autentikasi, dan logika bisnis aplikasi.
+- **Database:**
+  - Menyimpan seluruh data utama aplikasi secara terstruktur dan aman.
+- **Storage:**
+  - Menyimpan file gambar artikel yang diupload user/admin.
+- **Shared/Utils:**
+  - Menjamin konsistensi data, validasi, dan kemudahan pengembangan lintas stack.
+
+---
+
+Setiap bagian saling terhubung membentuk sistem portal berita yang modern, aman, dan mudah dikembangkan.
+
+---
+
+## Contoh Potongan Kode Inti & Penjelasannya
+
+### 1. Fetch Artikel & Kategori (Home.tsx)
+```tsx
+const { data: articlesResponse, isLoading: articlesLoading } = useQuery({
+  queryKey: ["/api/articles", { page, category, search }],
+  queryFn: async () => {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: "10",
+      published: "true",
+      ...(category && { category }),
+      ...(search && { search }),
+    });
+    const response = await fetch(`/api/articles?${params}`);
+    if (!response.ok) throw new Error("Failed to fetch articles");
+    return response.json();
+  },
+});
+```
+**Penjelasan:**
+- Mengambil data artikel dari backend dengan filter page, kategori, dan pencarian.
+- Menggunakan React Query untuk optimasi fetch dan cache data.
+
+---
+
+### 2. Form Komentar & Emoji Picker (ArticleDetail.tsx)
+```tsx
+<form onSubmit={commentForm.handleSubmit(onSubmitComment)}>
+  <Textarea {...commentForm.register("content")} />
+  <button type="button" onClick={() => setShowEmoji((v) => !v)}>😊</button>
+  {showEmoji && (
+    <Picker onEmojiClick={(emojiData) => {
+      // Menyisipkan emoji ke textarea
+    }} />
+  )}
+  <Button type="submit">Kirim Komentar</Button>
+</form>
+```
+**Penjelasan:**
+- Form komentar dengan validasi dan emoji picker.
+- Emoji dapat disisipkan ke dalam textarea komentar.
+- Komentar dikirim ke backend untuk dimoderasi.
+
+---
+
+### 3. API Route Backend: Ambil Artikel (server/routes.ts)
+```ts
+app.get("/api/articles", async (req, res) => {
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 10;
+  const categorySlug = req.query.category as string;
+  const search = req.query.search as string;
+  let published: boolean | undefined;
+  if (req.query.published === "false") {
+    published = undefined;
+  } else {
+    published = true;
+  }
+  const result = await storage.getArticles(page, limit, categorySlug, search, published);
+  res.json(result);
+});
+```
+**Penjelasan:**
+- Endpoint backend untuk mengambil daftar artikel dengan filter page, kategori, search, dan status publish.
+- Data diambil dari database melalui storage layer.
+
+---
+
+### 4. Site Settings Provider (client/src/lib/siteSettings.tsx)
+```tsx
+export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [settings, setSettings] = useState<SiteSettings>({});
+  useEffect(() => {
+    async function fetchSettings() {
+      const keys = ["site_name", "site_description", "site_icon", "feature_flags"];
+      const results = await Promise.all(
+        keys.map(async (key) => {
+          const res = await fetch(`/api/settings/${key}`);
+          if (!res.ok) return [key, undefined];
+          const data = await res.json();
+          return [key, data.value];
+        })
+      );
+      const obj: SiteSettings = {};
+      for (const [key, value] of results) {
+        if (key && value !== undefined) obj[key as keyof SiteSettings] = value;
+      }
+      setSettings(obj);
+    }
+    fetchSettings();
+  }, []);
+  return (
+    <SiteSettingsContext.Provider value={settings}>{children}</SiteSettingsContext.Provider>
+  );
+};
+```
+**Penjelasan:**
+- Provider React untuk mengambil dan menyimpan site settings dari backend.
+- Digunakan untuk mengatur fitur aktif/tidak (feature flags) di seluruh aplikasi.
+
+---
+
+### 5. Autentikasi User (client/src/hooks/useAuth.tsx)
+```tsx
+useEffect(() => {
+  const initAuth = async () => {
+    const token = getToken();
+    const userData = getUser();
+    if (token && userData) {
+      try {
+        const response = await apiRequest("GET", "/api/auth/me");
+        const data = await response.json();
+        setUserState(data.user);
+      } catch {
+        logout();
+      }
+    }
+    setIsLoading(false);
+  };
+  initAuth();
+}, []);
+```
+**Penjelasan:**
+- Mengecek status login user saat aplikasi dimuat.
+- Jika token valid, user dianggap login dan bisa akses fitur personal.
+
+---
+
+### 6. API Route Backend: Komentar (server/routes.ts)
+```ts
+app.post("/api/articles/:articleId/comments", authenticateToken, async (req, res) => {
+  const articleId = parseInt(req.params.articleId);
+  const { content } = req.body;
+  const comment = await storage.createComment({
+    content,
+    authorId: req.user!.id,
+    articleId,
+    isApproved: false, // Komentar perlu moderasi
+  });
+  res.status(201).json({ message: "Komentar berhasil dikirim dan menunggu moderasi" });
+});
+```
+**Penjelasan:**
+- Endpoint backend untuk menerima komentar baru.
+- Komentar disimpan dengan status menunggu moderasi (isApproved: false).
+
+---
+
+## Potongan Kode Inti Lanjutan & Penjelasannya
+
+### 7. Routing & Layout Utama (App.tsx)
+```tsx
+function Router() {
+  return (
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/article/:slug" element={<ArticleDetail />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/admin/*" element={<ProtectedRoute roles={["ADMIN", "DEVELOPER"]}><AdminRoutes /></ProtectedRoute>} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+}
+```
+**Penjelasan:**
+- Mengatur navigasi utama aplikasi menggunakan React Router.
+- Melindungi route admin dengan komponen ProtectedRoute.
+
+---
+
+### 8. Protected Route (components/ProtectedRoute.tsx)
+```tsx
+export default function ProtectedRoute({ children, roles, fallback }) {
+  const { isAuthenticated, user } = useAuth();
+  if (!isAuthenticated || (roles && !roles.includes(user?.role))) {
+    return fallback || <Navigate to="/login" />;
+  }
+  return <>{children}</>;
+}
+```
+**Penjelasan:**
+- Membatasi akses halaman tertentu hanya untuk user dengan role tertentu (misal: admin).
+
+---
+
+### 9. Komponen Navbar (components/Navbar.tsx)
+```tsx
+export default function Navbar() {
+  const siteSettings = useSiteSettings();
+  const { user, logout, isAuthenticated } = useAuth();
+  // ...
+  return (
+    <nav>
+      {/* Logo, menu, user info, dsb */}
+    </nav>
+  );
+}
+```
+**Penjelasan:**
+- Menampilkan navigasi utama, logo, dan menu sesuai status login user.
+
+---
+
+### 10. Komponen Footer (components/Footer.tsx)
+```tsx
+export default function Footer() {
+  return (
+    <footer className="py-6 text-center text-gray-500">
+      &copy; {new Date().getFullYear()} IndonesiaNews. All rights reserved.
+    </footer>
+  );
+}
+```
+**Penjelasan:**
+- Menampilkan informasi copyright di bagian bawah aplikasi.
+
+---
+
+### 11. Komponen ArticleCard (components/ArticleCard.tsx)
+```tsx
+export default function ArticleCard({ article }) {
+  return (
+    <Card>
+      <img src={article.coverImage} alt={article.title} />
+      <h3>{article.title}</h3>
+      <p>{article.excerpt}</p>
+    </Card>
+  );
+}
+```
+**Penjelasan:**
+- Menampilkan ringkasan artikel dalam bentuk kartu.
+
+---
+
+### 12. Custom Hook useIsMobile (hooks/use-mobile.tsx)
+```tsx
+export function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+  return isMobile;
+}
+```
+**Penjelasan:**
+- Menentukan apakah tampilan saat ini mobile atau desktop.
+
+---
+
+### 13. Validasi Register (pages/Register.tsx)
+```tsx
+const registerSchema = z.object({
+  username: z.string().min(3),
+  email: z.string().email(),
+  password: z.string().min(6),
+  fullName: z.string().min(3),
+});
+```
+**Penjelasan:**
+- Validasi data register user menggunakan Zod.
+
+---
+
+### 14. Form Register (pages/Register.tsx)
+```tsx
+<form onSubmit={form.handleSubmit(onSubmit)}>
+  <input {...form.register("username")} />
+  <input {...form.register("email")} />
+  <input {...form.register("password")} type="password" />
+  <input {...form.register("fullName")} />
+  <Button type="submit">Daftar</Button>
+</form>
+```
+**Penjelasan:**
+- Form register user baru dengan validasi dan submit ke backend.
+
+---
+
+### 15. Fetch Kategori (pages/Home.tsx)
+```tsx
+const { data: categories } = useQuery({
+  queryKey: ["/api/categories"],
+  queryFn: async () => {
+    const response = await fetch("/api/categories");
+    if (!response.ok) throw new Error("Failed to fetch categories");
+    return response.json();
+  },
+});
+```
+**Penjelasan:**
+- Mengambil daftar kategori dari backend untuk navigasi/filter.
+
+---
+
+### 16. Like Artikel (pages/ArticleDetail.tsx)
+```tsx
+const likeMutation = useMutation({
+  mutationFn: () => apiRequest("POST", `/api/articles/${article!.id}/like`),
+  onSuccess: async (response) => {
+    const data = await response.json();
+    setIsLiked(data.isLiked);
+    toast({ description: data.message });
+    queryClient.invalidateQueries({ queryKey: ["/api/articles", slug] });
+  },
+});
+```
+**Penjelasan:**
+- Mengirim aksi like artikel ke backend dan update state di frontend.
+
+---
+
+### 17. Bookmark Artikel (pages/ArticleDetail.tsx)
+```tsx
+const bookmarkMutation = useMutation({
+  mutationFn: () => apiRequest("POST", `/api/articles/${article!.id}/bookmark`),
+  onSuccess: async (response) => {
+    const data = await response.json();
+    setIsBookmarked(data.isBookmarked);
+    toast({ description: data.message });
+    queryClient.invalidateQueries({ queryKey: ["/api/articles", slug] });
+  },
+});
+```
+**Penjelasan:**
+- Mengirim aksi bookmark artikel ke backend dan update state di frontend.
+
+---
+
+### 18. Format Tanggal (pages/ArticleDetail.tsx)
+```tsx
+const formatDate = (date: string | Date) => {
+  return new Date(date).toLocaleDateString("id-ID", {
+    day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit",
+  });
+};
+```
+**Penjelasan:**
+- Mengubah format tanggal menjadi format lokal Indonesia.
+
+---
+
+### 19. Fetch Komentar (pages/ArticleDetail.tsx)
+```tsx
+const { data: comments = [], isLoading: commentsLoading } = useQuery({
+  queryKey: ["/api/articles", article?.id, "comments"],
+  queryFn: async () => {
+    if (!article?.id || !commentsEnabled) return [];
+    const response = await fetch(`/api/articles/${article.id}/comments`);
+    if (!response.ok) throw new Error("Gagal memuat komentar");
+    return response.json();
+  },
+  enabled: !!article?.id && commentsEnabled,
+});
+```
+**Penjelasan:**
+- Mengambil daftar komentar untuk artikel tertentu dari backend.
+
+---
+
+### 20. Moderasi Komentar Otomatis (server/routes.ts)
+```ts
+app.post("/api/articles/:articleId/comments", authenticateToken, async (req, res) => {
+  const articleId = parseInt(req.params.articleId);
+  const { content } = req.body;
+  const comment = await storage.createComment({
+    content,
+    authorId: req.user!.id,
+    articleId,
+    isApproved: false, // Komentar perlu moderasi
+  });
+  res.status(201).json({ message: "Komentar berhasil dikirim dan menunggu moderasi" });
+});
+```
+**Penjelasan:**
+- Komentar baru disimpan dengan status menunggu moderasi admin/otomatis.
+
+---
+
+(Lanjutkan ke 30 potongan kode berikutnya jika ingin lebih banyak contoh, atau minta bagian spesifik yang ingin didetailkan!)
