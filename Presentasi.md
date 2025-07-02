@@ -6,9 +6,18 @@ paginate: true
 
 # Portal Berita IndonesiaNews
 ### UAS Pemrograman Web  
-Kelompok 7  
-Dosen: [Nama Dosen]  
-Tanggal: [Tanggal Presentasi]
+**Kelompok 4**  
+**Anggota:**  
+1. Abed  
+2. Fairus  
+3. Nisak  
+4. Diva  
+5. Indah  
+6. Akmal  
+7. Zulfa  
+
+**Dosen:** Muchayan  
+**Tanggal:** 2 Juli 2025
 
 ---
 
