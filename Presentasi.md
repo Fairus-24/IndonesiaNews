@@ -66,3 +66,63 @@ Tanggal: [Tanggal Presentasi]
 - Cuplikan kode:
 ```tsx
 <Picker onEmojiClick={...} ... />
+
+
+##Berikut adalah deskripsi alur sistem dalam bentuk teks yang saling berkaitan dan mudah diubah menjadi diagram alur (flowchart). Setiap bagian sudah dihubungkan secara logis dari awal hingga akhir proses aplikasi:
+
+---
+
+**1. User membuka aplikasi**  
+→ Frontend React menampilkan halaman Home  
+→ User dapat memilih:  
+ • Melihat slider berita unggulan  
+ • Melihat berita populer  
+ • Memilih kategori berita  
+ • Melakukan pencarian artikel  
+ • Login/Register
+
+**2. Jika user memilih artikel**  
+→ Frontend menampilkan detail artikel  
+→ User dapat:  
+ • Membaca isi artikel  
+ • Memberi like  
+ • Bookmark artikel  
+ • Melihat dan menulis komentar (jika fitur aktif)
+
+**3. Jika user menulis komentar**  
+→ Frontend mengirim data komentar ke backend  
+→ Backend melakukan validasi & moderasi otomatis  
+ • Jika lolos moderasi → komentar langsung tampil  
+ • Jika terdeteksi spam/kata kasar → menunggu moderasi admin
+
+**4. Jika user login/register**  
+→ Frontend mengirim data ke backend  
+→ Backend melakukan autentikasi (JWT)  
+→ Jika sukses, user bisa akses fitur personal (like, bookmark, komentar, admin jika role sesuai)
+
+**5. Jika user/admin mengakses Admin Panel**  
+→ Frontend menampilkan menu admin  
+→ Admin dapat:  
+ • Manajemen artikel (tambah, edit, hapus, publish)  
+ • Moderasi komentar  
+ • Melihat statistik dashboard  
+ • Mengatur site settings & feature flags
+
+**6. Semua aksi user (baca, like, bookmark, komentar, admin)**  
+→ Frontend mengirim request ke backend (API)  
+→ Backend memproses request melalui middleware (autentikasi, validasi)  
+→ Backend melakukan query ke database (Drizzle ORM)  
+→ Jika ada upload gambar, backend simpan ke storage/uploads  
+→ Backend mengirim response ke frontend  
+→ Frontend update tampilan sesuai response
+
+---
+
+**Catatan:**
+- Setiap proses saling terhubung, misal:  
+  - Komentar hanya bisa jika user login  
+  - Fitur admin hanya muncul jika role user = admin/developer  
+  - Site settings/feature flags mempengaruhi fitur di frontend (misal: komentar aktif/tidak)
+- Semua data utama (user, artikel, kategori, komentar, settings) tersimpan di database.
+
+---
