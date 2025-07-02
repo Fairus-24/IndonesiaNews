@@ -1097,4 +1097,172 @@ export default function NotFound() {
 
 ---
 
-Potongan kode di atas melengkapi dokumentasi dan bisa digunakan untuk presentasi, laporan, atau diskusi teknis.
+### 41. Menampilkan Badge Kategori (components/ArticleCard.tsx)
+```tsx
+<Badge style={{ backgroundColor: article.category.color }} className="text-white">
+  {article.category.name}
+</Badge>
+```
+**Penjelasan:**
+- Menampilkan nama kategori artikel dengan warna khusus di setiap kartu artikel.
+
+---
+
+### 42. Menampilkan Slider Featured Articles (pages/Home.tsx)
+```tsx
+<div className="relative w-full">
+  <div className="overflow-hidden rounded-lg shadow-lg">
+    <div className="flex transition-transform duration-700" style={{ transform: `translateX(-${featuredIndex * 100}%)` }}>
+      {featuredArticles.map((article) => (
+        <div key={article.id} className="min-w-full relative h-72 sm:h-96">
+          <img src={article.coverImage} alt={article.title} className="w-full h-full object-cover rounded-lg" />
+          <div className="absolute left-0 bottom-0 w-full bg-gradient-to-t from-black/80 to-transparent p-4 rounded-b-lg flex flex-col items-start">
+            <Badge ...>{article.category.name}</Badge>
+            <h2 className="text-lg sm:text-2xl font-bold text-white drop-shadow-md line-clamp-2">{article.title}</h2>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</div>
+```
+**Penjelasan:**
+- Membuat slider artikel unggulan dengan gambar penuh dan overlay judul + kategori di kiri bawah.
+
+---
+
+### 43. Menampilkan Jumlah Komentar, Like, Bookmark (pages/ArticleDetail.tsx)
+```tsx
+<div className="flex items-center space-x-4 pb-6 border-b">
+  <Button ...>
+    <Heart ... />
+    <span>{article._count.likes}</span>
+    <span>Suka</span>
+  </Button>
+  <Button ...>
+    <MessageCircle ... />
+    <span>{article._count.comments}</span>
+    <span>Komentar</span>
+  </Button>
+  <Button ...>
+    <Bookmark ... />
+    <span>{article._count.bookmarks}</span>
+    <span>Simpan</span>
+  </Button>
+</div>
+```
+**Penjelasan:**
+- Menampilkan jumlah interaksi user pada artikel (like, komentar, bookmark).
+
+---
+
+### 44. Menampilkan Gambar Cover Artikel (pages/ArticleDetail.tsx)
+```tsx
+{article.coverImage && (
+  <img src={article.coverImage} alt={article.title} className="w-full h-64 md:h-96 object-cover rounded-lg" />
+)}
+```
+**Penjelasan:**
+- Menampilkan gambar utama artikel secara responsif.
+
+---
+
+### 45. Menampilkan Konten Artikel (pages/ArticleDetail.tsx)
+```tsx
+<div className="prose prose-lg max-w-none mb-12" style={{ textAlign: 'justify' }}>
+  <div style={{ textAlign: 'justify' }} dangerouslySetInnerHTML={{ __html: article.content }} />
+</div>
+```
+**Penjelasan:**
+- Menampilkan isi artikel dengan format HTML dan styling typography.
+
+---
+
+### 46. Menampilkan Halaman Bookmarks (pages/Bookmarks.tsx)
+```tsx
+export default function Bookmarks() {
+  const { data: bookmarks } = useQuery({ ... });
+  return (
+    <div>
+      {bookmarks.map((article) => (
+        <ArticleCard key={article.id} article={article} />
+      ))}
+    </div>
+  );
+}
+```
+**Penjelasan:**
+- Menampilkan daftar artikel yang sudah di-bookmark oleh user.
+
+---
+
+### 47. Menampilkan Statistik Dashboard Admin (pages/admin/Dashboard.tsx)
+```tsx
+<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+  <Card>
+    <CardContent>
+      <h3>Total Artikel</h3>
+      <p>{stats.articles}</p>
+    </CardContent>
+  </Card>
+  <Card>
+    <CardContent>
+      <h3>Total User</h3>
+      <p>{stats.users}</p>
+    </CardContent>
+  </Card>
+  <Card>
+    <CardContent>
+      <h3>Total Komentar</h3>
+      <p>{stats.comments}</p>
+    </CardContent>
+  </Card>
+</div>
+```
+**Penjelasan:**
+- Menampilkan statistik jumlah artikel, user, dan komentar di dashboard admin.
+
+---
+
+### 48. Menampilkan Notifikasi Toast (components/ui/toaster.tsx)
+```tsx
+{toasts.map(({ id, title, description, ...props }) => (
+  <div key={id} className="toast">
+    <strong>{title}</strong>
+    <span>{description}</span>
+  </div>
+))}
+```
+**Penjelasan:**
+- Menampilkan daftar notifikasi toast yang aktif di aplikasi.
+
+---
+
+### 49. Menampilkan Loader di Komentar (pages/ArticleDetail.tsx)
+```tsx
+{commentsLoading ? (
+  <div className="flex justify-center">
+    <Loader2 className="h-6 w-6 animate-spin" />
+  </div>
+) : ...}
+```
+**Penjelasan:**
+- Loader animasi saat komentar sedang diambil dari backend.
+
+---
+
+### 50. Menampilkan Pesan Jika Komentar Kosong (pages/ArticleDetail.tsx)
+```tsx
+{comments.length === 0 && !commentsLoading && (
+  <div className="text-center py-8">
+    <MessageCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+    <p className="text-gray-600">Belum ada komentar untuk artikel ini</p>
+  </div>
+)}
+```
+**Penjelasan:**
+- Menampilkan pesan jika belum ada komentar pada artikel.
+
+---
+
+Potongan kode di atas menambah variasi contoh implementasi UI, interaksi, dan logika aplikasi Anda.
