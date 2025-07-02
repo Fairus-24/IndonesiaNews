@@ -801,5 +801,3 @@ app.post("/api/articles/:articleId/comments", authenticateToken, async (req, res
 - Komentar baru disimpan dengan status menunggu moderasi admin/otomatis.
 
 ---
-
-(Lanjutkan ke 30 potongan kode berikutnya jika ingin lebih banyak contoh, atau minta bagian spesifik yang ingin didetailkan!)
