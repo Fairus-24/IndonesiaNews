@@ -54,7 +54,7 @@ paginate: true
 
 ## Flowchart Sistem
 
-![Flowchart](flowchart.png)
+![Flowchart](https://raw.githubusercontent.com/Fairus-24/IndonesiaNews/refs/heads/main/client/src/assets/flowchart.png)
 <!-- Gambar flowchart, bisa digambar di draw.io lalu di-insert di sini -->
 
 ---
@@ -75,6 +75,7 @@ paginate: true
 - Cuplikan kode:
 ```tsx
 <Picker onEmojiClick={...} ... />
+```
 ---
 
 ##Berikut adalah deskripsi alur sistem dalam bentuk teks yang saling berkaitan dan mudah diubah menjadi diagram alur (flowchart). Setiap bagian sudah dihubungkan secara logis dari awal hingga akhir proses aplikasi:
@@ -1486,14 +1487,121 @@ toast({ description: "Artikel berhasil dihapus" });
 
 ---
 
-### 70. Menampilkan Switch Dark Mode (Navbar.tsx / Settings.tsx)
-```tsx
-<Switch checked={isDarkMode} onCheckedChange={toggleDarkMode} />
+## Contoh Kode Backend & Alur Komunikasi Data
+
+### 1. Endpoint Register User (server/routes.ts)
+```ts
+app.post("/api/auth/register", async (req, res) => {
+  const { username, email, password, fullName } = req.body;
+  // Validasi dan hash password
+  // Simpan user ke database
+  // Generate JWT token
+  res.status(201).json({ message: "Registrasi berhasil", token, user: { ... } });
+});
 ```
 **Penjelasan:**
-- Komponen switch untuk mengaktifkan mode gelap/terang aplikasi.
+- Menerima data register dari frontend, validasi, simpan user baru, dan kirim token ke frontend.
 
 ---
 
-Potongan kode di atas semakin melengkapi dokumentasi dan penjelasan implementasi seluruh fitur utama aplikasi Anda.
+### 2. Endpoint Login User (server/routes.ts)
+```ts
+app.post("/api/auth/login", async (req, res) => {
+  const { email, password } = req.body;
+  // Cek user dan password
+  // Generate JWT token jika valid
+  res.json({ message: "Login berhasil", token, user: { ... } });
+});
+```
+**Penjelasan:**
+- Menerima data login dari frontend, cek ke database, dan kirim token jika sukses.
+
+---
+
+### 3. Endpoint Ambil Artikel (server/routes.ts)
+```ts
+app.get("/api/articles", async (req, res) => {
+  const { page, limit, category, search } = req.query;
+  // Query artikel dari database sesuai filter
+  res.json({ articles, total });
+});
+```
+**Penjelasan:**
+- Mengambil daftar artikel dari database sesuai filter yang dikirim frontend.
+
+---
+
+### 4. Endpoint Komentar Artikel (server/routes.ts)
+```ts
+app.post("/api/articles/:articleId/comments", authenticateToken, async (req, res) => {
+  const { content } = req.body;
+  // Simpan komentar ke database dengan status moderasi
+  res.status(201).json({ message: "Komentar berhasil dikirim dan menunggu moderasi" });
+});
+```
+**Penjelasan:**
+- Menerima komentar dari frontend, simpan ke database, dan menunggu moderasi.
+
+---
+
+### 5. Endpoint Like Artikel (server/routes.ts)
+```ts
+app.post("/api/articles/:articleId/like", authenticateToken, async (req, res) => {
+  // Toggle like di database
+  res.json({ isLiked, message: isLiked ? "Artikel disukai" : "Like dibatalkan" });
+});
+```
+**Penjelasan:**
+- Menerima aksi like dari frontend, update database, dan kirim status baru ke frontend.
+
+---
+
+### 6. Contoh Alur Komunikasi Frontend-Backend (Like Artikel)
+1. **User klik tombol Like di frontend**
+2. **Frontend** mengirim request:
+   ```http
+   POST /api/articles/123/like
+   Authorization: Bearer <token>
+   ```
+3. **Backend** menerima request, cek token, update data like di database.
+4. **Backend** mengirim response:
+   ```json
+   { "isLiked": true, "message": "Artikel disukai" }
+   ```
+5. **Frontend** update tampilan jumlah like dan status tombol.
+
+---
+
+### 7. Contoh Alur Komunikasi Frontend-Backend (Ambil Artikel)
+1. **Frontend** mengirim request:
+   ```http
+   GET /api/articles?page=1&limit=10&category=politik
+   ```
+2. **Backend** query database, filter artikel sesuai parameter.
+3. **Backend** mengirim response:
+   ```json
+   { "articles": [ ... ], "total": 100 }
+   ```
+4. **Frontend** menampilkan daftar artikel ke user.
+
+---
+
+### 8. Contoh Alur Komunikasi Frontend-Backend (Komentar)
+1. **User** menulis komentar dan submit di frontend.
+2. **Frontend** mengirim request:
+   ```http
+   POST /api/articles/123/comments
+   Authorization: Bearer <token>
+   Content-Type: application/json
+   { "content": "Artikel ini sangat bermanfaat!" }
+   ```
+3. **Backend** validasi, simpan komentar ke database dengan status moderasi.
+4. **Backend** mengirim response:
+   ```json
+   { "message": "Komentar berhasil dikirim dan menunggu moderasi" }
+   ```
+5. **Frontend** menampilkan notifikasi sukses ke user.
+
+---
+
 
