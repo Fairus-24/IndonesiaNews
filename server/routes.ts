@@ -912,6 +912,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // CRUD API untuk database (developer only)
+  // Mapping nama tabel ke model Prisma Client (moved to outer scope for reuse)
+  const prismaTableMap: Record<string, any> = {
+    users: prisma.user,
+    articles: prisma.article,
+    categories: prisma.category,
+    comments: prisma.comment,
+    bookmarks: prisma.bookmark,
+    likes: prisma.like,
+  };
+
   app.get(
     "/api/dev/db",
     authenticateToken,
@@ -931,20 +941,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ];
         if (!allowedTables.includes(table))
           return res.status(400).json({ message: "Table tidak valid" });
-        // Helper: mapping nama tabel ke model Prisma
-        const prismaTableMap: Record<string, any> = {
-          users: prisma.user,
-          articles: prisma.article,
-          categories: prisma.category,
-          comments: prisma.comment,
-          bookmarks: prisma.bookmark,
-          likes: prisma.like,
-        };
         const prismaModel = prismaTableMap[table];
-        if (!prismaModel) {
-          console.log("[DEV/DB] Tabel tidak dikenali:", table);
-          return res.status(400).json({ message: "Table tidak valid" });
-        }
+        if (!prismaModel)
+          return res.status(400).json({ message: "Table tidak ditemukan" });
         // Ambil kolom dari satu row jika ada
         let columns: string[] = [];
         const row = await prismaModel.findFirst();
@@ -979,7 +978,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.json({ columns, rows: limitedRows, truncated });
       } catch (error) {
         console.error("[DEV/DB] ERROR:", error);
-        res.status(500).json({ message: "Gagal mengambil data database", error: error?.message || error });
+        res.status(500).json({ message: "Gagal mengambil data database", error: error instanceof Error ? error.message : error });
       }
     }
   );
@@ -993,18 +992,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const { table, id } = req.query;
         if (!table || typeof table !== "string" || !id)
           return res.status(400).json({ message: "Table dan id diperlukan" });
-        const allowedTables = Object.keys(prismaTableMap);
+        const allowedTables = [
+          "articles",
+          "categories",
+          "users",
+          "comments",
+          "bookmarks",
+          "likes",
+        ];
         if (!allowedTables.includes(table))
           return res.status(400).json({ message: "Table tidak valid" });
         const prismaModel = prismaTableMap[table];
+        if (!prismaModel)
+          return res.status(400).json({ message: "Table tidak ditemukan" });
         // Cek apakah data ada sebelum hapus
         const found = await prismaModel.findUnique({ where: { id: Number(id) } });
         if (!found) return res.status(404).json({ message: "Data tidak ditemukan" });
         await prismaModel.delete({ where: { id: Number(id) } });
         res.json({ message: "Data berhasil dihapus" });
-      } catch (error: any) {
+      } catch (error) {
         console.error(`[DEV/DB][DELETE]`, error);
-        res.status(500).json({ message: "Gagal menghapus data", error: error?.message || String(error) });
+        res.status(500).json({ message: "Gagal menghapus data", error: error instanceof Error ? error.message : error });
       }
     }
   );
@@ -1018,20 +1026,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const { table } = req.query;
         if (!table || typeof table !== "string")
           return res.status(400).json({ message: "Table diperlukan" });
-        const allowedTables = Object.keys(prismaTableMap);
+        const allowedTables = [
+          "articles",
+          "categories",
+          "users",
+          "comments",
+          "bookmarks",
+          "likes",
+        ];
         if (!allowedTables.includes(table))
           return res.status(400).json({ message: "Table tidak valid" });
         const prismaModel = prismaTableMap[table];
+        if (!prismaModel)
+          return res.status(400).json({ message: "Table tidak ditemukan" });
         const data = req.body;
         if (!data.id) return res.status(400).json({ message: "ID diperlukan" });
-        // Hapus kolom yang tidak boleh diupdate jika perlu
+        // Update hanya kolom yang ada di model
+        const modelFields = Object.keys(prismaModel.fields || {});
+        const updateData: Record<string, any> = {};
+        for (const key of Object.keys(data)) {
+          if (key !== "id" && modelFields.includes(key)) {
+            updateData[key] = data[key];
+          }
+        }
         const updated = await prismaModel.update({
           where: { id: data.id },
-          data,
+          data: updateData,
         });
         res.json(updated);
-      } catch (error: any) {
-        res.status(500).json({ message: "Gagal mengubah data", error: error?.message || String(error) });
+      } catch (error) {
+        console.error(`[DEV/DB][PUT]`, error);
+        res.status(500).json({ message: "Gagal mengubah data", error: error instanceof Error ? error.message : error });
       }
     }
   );
@@ -1043,9 +1068,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/dev/user-logs", authenticateToken, requireDeveloper, async (req, res) => {
     try {
       const logs = await prisma.userLog.findMany({
-        include: {
-          // relasi actor dan target tidak ada di model, jadi hapus include ini
-        },
         orderBy: { createdAt: "desc" },
       });
       res.json(logs);

@@ -162,7 +162,7 @@ export default function DatabaseManager() {
 function EditForm({ row, columns, onSave, onCancel }: { row: any, columns: string[], onSave: (data: any) => void, onCancel: () => void }) {
   const { register, handleSubmit } = useForm({ defaultValues: row });
   return (
-    <form onSubmit={handleSubmit(onSave)} className="space-y-2 w-full max-w-md mx-auto grid grid-cols-1 gap-3">
+    <form onSubmit={handleSubmit(onSave)} className="space-y-2 w-full max-w-[95vw] sm:max-w-lg mx-auto grid grid-cols-1 gap-3 p-2">
       {columns.filter(col => col !== "id").map(col => (
         <div key={col} className="flex flex-col">
           <label className="block text-xs font-bold mb-1" htmlFor={col}>{col}</label>
