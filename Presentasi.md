@@ -568,8 +568,6 @@ app.post("/api/articles/:articleId/comments", authenticateToken, async (req, res
 
 ---
 
-## Potongan Kode Inti Lanjutan & Penjelasannya
-
 ### 7. Routing & Layout Utama (App.tsx)
 ```tsx
 function Router() {
@@ -801,3 +799,302 @@ app.post("/api/articles/:articleId/comments", authenticateToken, async (req, res
 - Komentar baru disimpan dengan status menunggu moderasi admin/otomatis.
 
 ---
+
+### 21. Update State Artikel Saat Data Baru (pages/Home.tsx)
+```tsx
+useEffect(() => {
+  if (articlesResponse?.articles) {
+    if (page === 1) {
+      setArticles(articlesResponse.articles);
+    } else {
+      setArticles(prev => [...prev, ...articlesResponse.articles]);
+    }
+  }
+}, [articlesResponse, page]);
+```
+**Penjelasan:**
+- Mengupdate state daftar artikel saat data baru di-fetch, baik saat load awal maupun saat load more.
+
+---
+
+### 22. Load More Button (pages/Home.tsx)
+```tsx
+<Button onClick={loadMore} disabled={articlesLoading}>
+  {articlesLoading ? "Memuat..." : "Muat Lebih Banyak Berita"}
+</Button>
+```
+**Penjelasan:**
+- Tombol untuk memuat lebih banyak artikel dengan pagination.
+
+---
+
+### 23. Custom Hook useToast (hooks/use-toast.ts)
+```tsx
+export function useToast() {
+  const [toasts, setToasts] = useState([]);
+  const toast = (options) => setToasts([...toasts, options]);
+  return { toast };
+}
+```
+**Penjelasan:**
+- Menampilkan notifikasi toast di aplikasi untuk feedback aksi user.
+
+---
+
+### 24. Provider SiteSettings (lib/siteSettings.tsx)
+```tsx
+<SiteSettingsContext.Provider value={settings}>
+  {children}
+</SiteSettingsContext.Provider>
+```
+**Penjelasan:**
+- Membagikan site settings ke seluruh aplikasi melalui React Context.
+
+---
+
+### 25. Validasi Komentar (pages/ArticleDetail.tsx)
+```tsx
+const commentSchema = z.object({
+  content: z.string().min(1, "Komentar tidak boleh kosong").max(1000, "Komentar maksimal 1000 karakter"),
+});
+```
+**Penjelasan:**
+- Validasi isi komentar agar tidak kosong dan tidak terlalu panjang.
+
+---
+
+### 26. Form Komentar dengan React Hook Form (pages/ArticleDetail.tsx)
+```tsx
+const commentForm = useForm<CommentFormData>({
+  resolver: zodResolver(commentSchema),
+  defaultValues: { content: "" },
+});
+```
+**Penjelasan:**
+- Setup form komentar dengan validasi otomatis menggunakan React Hook Form dan Zod.
+
+---
+
+### 27. Menyisipkan Emoji ke Textarea (pages/ArticleDetail.tsx)
+```tsx
+onEmojiClick={(emojiData) => {
+  const emoji = emojiData.emoji;
+  const textarea = textareaRef.current;
+  if (textarea) {
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const value = textarea.value;
+    const newValue = value.slice(0, start) + emoji + value.slice(end);
+    textarea.value = newValue;
+    textarea.setSelectionRange(start + emoji.length, start + emoji.length);
+    textarea.focus();
+    commentForm.setValue("content", newValue, { shouldValidate: true });
+  }
+  setShowEmoji(false);
+}}
+```
+**Penjelasan:**
+- Menyisipkan emoji ke posisi kursor pada textarea komentar.
+
+---
+
+### 28. Protected Route untuk Admin (components/ProtectedRoute.tsx)
+```tsx
+<ProtectedRoute roles={["ADMIN", "DEVELOPER"]}>
+  <AdminRoutes />
+</ProtectedRoute>
+```
+**Penjelasan:**
+- Hanya user dengan role admin/developer yang bisa mengakses halaman admin.
+
+---
+
+### 29. Fetch Statistik Admin (pages/admin/Dashboard.tsx)
+```tsx
+const { data: stats } = useQuery({
+  queryKey: ["/api/admin/statistics"],
+  queryFn: async () => {
+    const response = await fetch("/api/admin/statistics");
+    if (!response.ok) throw new Error("Gagal mengambil statistik");
+    return response.json();
+  },
+});
+```
+**Penjelasan:**
+- Mengambil data statistik (jumlah artikel, user, komentar) untuk dashboard admin.
+
+---
+
+### 30. Update Site Settings dari Admin (pages/developer/Settings.tsx)
+```tsx
+const saveSettingMutation = useMutation({
+  mutationFn: (data) => apiRequest("POST", "/api/dev/settings", data),
+  onSuccess: () => {
+    toast({ description: "Pengaturan berhasil disimpan" });
+    queryClient.invalidateQueries(["/api/dev/settings"]);
+  },
+});
+```
+**Penjelasan:**
+- Admin dapat mengubah site settings/feature flags dan update langsung ke backend.
+
+---
+
+### 31. Middleware Autentikasi Backend (server/middleware/auth.ts)
+```ts
+export function authenticateToken(req, res, next) {
+  const token = req.headers["authorization"]?.split(" ")[1];
+  if (!token) return res.sendStatus(401);
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) return res.sendStatus(403);
+    req.user = user;
+    next();
+  });
+}
+```
+**Penjelasan:**
+- Middleware untuk mengecek token JWT pada setiap request yang butuh autentikasi.
+
+---
+
+### 32. Upload Gambar Artikel (server/routes.ts)
+```ts
+app.post("/api/articles", authenticateToken, requireAdmin, upload.single("coverImage"), async (req, res) => {
+  // ...
+  let coverImage = undefined;
+  if (req.body.imageUploadType === "url" && req.body.coverImageUrl) {
+    coverImage = req.body.coverImageUrl;
+  } else if (req.body.imageUploadType === "file" && req.file) {
+    coverImage = `/uploads/${req.file.filename}`;
+  }
+  // ...
+});
+```
+**Penjelasan:**
+- Mendukung upload gambar artikel baik dari URL maupun file langsung.
+
+---
+
+### 33. Query Bookmark User (server/routes.ts)
+```ts
+app.get("/api/user/bookmarks", authenticateToken, async (req, res) => {
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 10;
+  const result = await storage.getUserBookmarks(req.user!.id, page, limit);
+  res.json(result);
+});
+```
+**Penjelasan:**
+- Mengambil daftar artikel yang di-bookmark oleh user tertentu.
+
+---
+
+### 34. Filter Kategori di Home (pages/Home.tsx)
+```tsx
+<Button
+  variant={!category ? "default" : "outline"}
+  onClick={() => window.location.href = "/}
+>
+  Semua
+</Button>
+{categories.map((cat) => (
+  <Button
+    key={cat.id}
+    variant={category === cat.slug ? "default" : "outline"}
+    onClick={() => window.location.href = `/category/${cat.slug}`}
+  >
+    {cat.name}
+  </Button>
+))}
+```
+**Penjelasan:**
+- Navigasi kategori berita di halaman Home.
+
+---
+
+### 35. Menampilkan Error Validasi (pages/ArticleDetail.tsx)
+```tsx
+{commentForm.formState.errors.content && (
+  <p className="text-sm text-red-600 mt-1">
+    {commentForm.formState.errors.content.message}
+  </p>
+)}
+```
+**Penjelasan:**
+- Menampilkan pesan error jika komentar tidak valid.
+
+---
+
+### 36. Menampilkan Loader Saat Fetch Data (pages/Home.tsx)
+```tsx
+{articlesLoading && (
+  <div className="min-h-screen flex items-center justify-center">
+    <Loader2 className="h-8 w-8 animate-spin" />
+  </div>
+)}
+```
+**Penjelasan:**
+- Menampilkan animasi loading saat data artikel sedang diambil.
+
+---
+
+### 37. Menampilkan Komentar (pages/ArticleDetail.tsx)
+```tsx
+{comments.map((comment) => (
+  <Card key={comment.id}>
+    <CardContent>
+      <div className="flex items-start space-x-3">
+        <User className="h-4 w-4 text-gray-600" />
+        <div>
+          <span className="font-medium">{comment.author.fullName}</span>
+          <span className="text-sm text-gray-500">{formatDate(comment.createdAt)}</span>
+          <p>{comment.content}</p>
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+))}
+```
+**Penjelasan:**
+- Menampilkan daftar komentar pada artikel secara terstruktur.
+
+---
+
+### 38. Logout User (hooks/useAuth.tsx)
+```tsx
+const logout = () => {
+  removeToken();
+  setUserState(null);
+};
+```
+**Penjelasan:**
+- Menghapus token dan state user saat logout.
+
+---
+
+### 39. Menampilkan Notifikasi Sukses/Gagal (hooks/use-toast.ts)
+```tsx
+toast({ description: "Aksi berhasil!" });
+toast({ title: "Error", description: "Terjadi kesalahan", variant: "destructive" });
+```
+**Penjelasan:**
+- Memberi feedback ke user setelah aksi penting.
+
+---
+
+### 40. Menampilkan Halaman 404 (pages/not-found.tsx)
+```tsx
+export default function NotFound() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <h1 className="text-3xl font-bold">404 - Halaman Tidak Ditemukan</h1>
+    </div>
+  );
+}
+```
+**Penjelasan:**
+- Menampilkan pesan jika user mengakses halaman yang tidak ada.
+
+---
+
+Potongan kode di atas melengkapi dokumentasi dan bisa digunakan untuk presentasi, laporan, atau diskusi teknis.
