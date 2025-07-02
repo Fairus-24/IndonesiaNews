@@ -126,3 +126,92 @@ Tanggal: [Tanggal Presentasi]
 - Semua data utama (user, artikel, kategori, komentar, settings) tersimpan di database.
 
 ---
+
+# Makalah Proyek Portal Berita IndonesiaNews
+
+## 1. Pendahuluan
+
+Portal Berita IndonesiaNews adalah aplikasi web yang dikembangkan sebagai tugas akhir mata kuliah Pemrograman Web. Aplikasi ini bertujuan menyediakan platform berita digital yang modern, interaktif, dan mudah dikelola, baik untuk pengguna umum maupun admin.
+
+## 2. Latar Belakang
+
+Di era digital, kebutuhan akan informasi yang cepat dan akurat sangat tinggi. Banyak portal berita yang tersedia, namun belum semuanya menawarkan pengalaman pengguna yang baik, fitur interaktif, serta kemudahan pengelolaan konten. Oleh karena itu, kami mengembangkan IndonesiaNews dengan fitur-fitur modern dan sistem manajemen yang efisien.
+
+## 3. Tujuan
+
+- Membuat portal berita berbasis web yang responsif dan mudah digunakan.
+- Menyediakan fitur lengkap: publikasi artikel, kategori, komentar, bookmark, admin panel, dan pengaturan situs.
+- Menerapkan konsep fullstack development (frontend, backend, database, storage).
+
+## 4. Alur Sistem
+
+1. User membuka aplikasi melalui browser (Frontend React).
+2. User dapat melihat slider berita unggulan, berita populer, memilih kategori, mencari artikel, login/register.
+3. Jika user memilih artikel, akan diarahkan ke halaman detail artikel, dapat memberi like, bookmark, dan komentar.
+4. Komentar yang dikirim user akan dimoderasi otomatis oleh backend (jika tidak mengandung kata kasar/spam langsung tampil, jika tidak menunggu admin).
+5. User yang login dapat mengakses fitur personal (like, bookmark, komentar). Jika role admin/developer, dapat mengakses admin panel.
+6. Admin panel menyediakan fitur manajemen artikel, moderasi komentar, statistik, dan pengaturan site settings/feature flags.
+7. Semua aksi user dikirim ke backend melalui REST API, diproses oleh Express.js, dan data disimpan di database (Drizzle ORM) atau storage (untuk gambar).
+
+## 5. Fitur dan Fungsionalitas
+
+### a. Home & Navigasi
+- Menampilkan slider 3 artikel unggulan (otomatis berganti).
+- Menampilkan 3 berita populer di kanan slider.
+- Navigasi kategori dan pencarian artikel.
+
+### b. Detail Artikel & Komentar
+- Menampilkan isi artikel, penulis, tanggal, kategori, gambar.
+- Komentar: user bisa menulis komentar, memilih emoji, validasi panjang komentar.
+- Komentar dimoderasi otomatis oleh backend.
+
+### c. Like, Bookmark, Register/Login
+- User bisa like & bookmark artikel (harus login).
+- Register/login untuk akses fitur personal.
+
+### d. Admin Panel
+- Hanya untuk user role admin/developer.
+- Manajemen artikel: tambah, edit, hapus, publish/unpublish.
+- Moderasi komentar: approve/reject otomatis/manual.
+- Statistik dashboard: jumlah artikel, user, komentar.
+- Pengaturan site settings & feature flags.
+
+### e. Site Settings & Feature Flags
+- Admin dapat mengaktifkan/menonaktifkan fitur (misal: komentar).
+- Pengaturan disimpan di database dan diakses frontend melalui context/provider.
+
+## 6. Arsitektur & Teknologi
+
+- **Frontend:** React, Vite, TailwindCSS, React Query, React Hook Form, Zod, Emoji Picker
+- **Backend:** Express.js, Drizzle ORM, JWT Auth, REST API, Middleware (autentikasi, validasi, rate limiter)
+- **Database:** SQLite/PostgreSQL (tabel: User, Article, Category, Comment, Settings)
+- **Storage:** Upload gambar artikel
+
+## 7. Diagram Alur Sistem
+
+```
+User → Frontend (React) → API Request → Backend (Express.js) → Middleware → Routing → Database/Storage → Response → Frontend
+```
+
+## 8. Hasil & Tampilan
+
+- Aplikasi berjalan responsif di desktop & mobile.
+- Fitur utama berjalan sesuai kebutuhan: publikasi artikel, komentar, bookmark, admin panel, dsb.
+- Tampilan modern dan mudah digunakan.
+- Sistem moderasi komentar berjalan otomatis dan manual.
+- Admin dapat mengatur fitur melalui site settings.
+
+## 9. Kesimpulan
+
+Portal Berita IndonesiaNews berhasil dibangun dengan fitur lengkap, arsitektur modern, dan sistem manajemen yang efisien. Aplikasi ini dapat dikembangkan lebih lanjut untuk kebutuhan nyata, baik sebagai portal berita kampus, komunitas, maupun publik.
+
+## 10. Saran Pengembangan
+
+- Integrasi notifikasi real-time (misal: komentar baru, artikel baru).
+- Fitur upload video atau galeri foto.
+- Integrasi analitik pengunjung.
+- Peningkatan keamanan (captcha, audit log admin, dsb).
+
+---
+
+Makalah ini dapat digunakan sebagai dokumentasi, laporan, atau lampiran presentasi proyek.
