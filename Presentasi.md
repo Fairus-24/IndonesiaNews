@@ -66,11 +66,10 @@ Tanggal: [Tanggal Presentasi]
 - Cuplikan kode:
 ```tsx
 <Picker onEmojiClick={...} ... />
-
+---
 
 ##Berikut adalah deskripsi alur sistem dalam bentuk teks yang saling berkaitan dan mudah diubah menjadi diagram alur (flowchart). Setiap bagian sudah dihubungkan secara logis dari awal hingga akhir proses aplikasi:
 
----
 
 **1. User membuka aplikasi**  
 → Frontend React menampilkan halaman Home  
@@ -116,7 +115,6 @@ Tanggal: [Tanggal Presentasi]
 → Backend mengirim response ke frontend  
 → Frontend update tampilan sesuai response
 
----
 
 **Catatan:**
 - Setiap proses saling terhubung, misal:  
@@ -125,7 +123,6 @@ Tanggal: [Tanggal Presentasi]
   - Site settings/feature flags mempengaruhi fitur di frontend (misal: komentar aktif/tidak)
 - Semua data utama (user, artikel, kategori, komentar, settings) tersimpan di database.
 
----
 
 # Makalah Proyek Portal Berita IndonesiaNews
 
@@ -212,6 +209,5 @@ Portal Berita IndonesiaNews berhasil dibangun dengan fitur lengkap, arsitektur m
 - Integrasi analitik pengunjung.
 - Peningkatan keamanan (captcha, audit log admin, dsb).
 
----
 
 Makalah ini dapat digunakan sebagai dokumentasi, laporan, atau lampiran presentasi proyek.
