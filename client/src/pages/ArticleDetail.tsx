@@ -296,9 +296,10 @@ export default function ArticleDetail() {
                 <div>
                   <Textarea
                     placeholder="Tulis komentar Anda..."
-                    {...commentForm.register("content")}
+                    {...commentForm.register("content", { required: true })}
                     rows={4}
                   />
+
                   {commentForm.formState.errors.content && (
                     <p className="text-sm text-red-600 mt-1">
                       {commentForm.formState.errors.content.message}
