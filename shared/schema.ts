@@ -79,6 +79,16 @@ export const siteSettings = pgTable("site_settings", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+// Audit log table untuk aksi user
+export const userLogs = pgTable("user_logs", {
+  id: serial("id").primaryKey(),
+  actorId: integer("actor_id").notNull().references(() => users.id), // user yang melakukan aksi
+  targetUserId: integer("target_user_id").notNull().references(() => users.id), // user yang diubah
+  action: text("action").notNull(), // misal: 'change_role'
+  detail: text("detail"), // misal: 'from USER to ADMIN'
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   articles: many(articles),
@@ -138,6 +148,17 @@ export const bookmarksRelations = relations(bookmarks, ({ one }) => ({
   }),
 }));
 
+export const userLogsRelations = relations(userLogs, ({ one }) => ({
+  actor: one(users, {
+    fields: [userLogs.actorId],
+    references: [users.id],
+  }),
+  targetUser: one(users, {
+    fields: [userLogs.targetUserId],
+    references: [users.id],
+  }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -177,6 +198,11 @@ export const insertSiteSettingSchema = createInsertSchema(siteSettings).omit({
   updatedAt: true,
 });
 
+export const insertUserLogSchema = createInsertSchema(userLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -192,6 +218,7 @@ export type Bookmark = typeof bookmarks.$inferSelect;
 export type InsertBookmark = z.infer<typeof insertBookmarkSchema>;
 export type SiteSetting = typeof siteSettings.$inferSelect;
 export type InsertSiteSetting = z.infer<typeof insertSiteSettingSchema>;
+export type UserLog = typeof userLogs.$inferSelect;
 
 // Extended types for API responses
 export type ArticleWithDetails = Article & {

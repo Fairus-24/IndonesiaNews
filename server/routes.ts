@@ -1,46 +1,66 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { authenticateToken, hashPassword, comparePassword, generateToken, requireAdmin, requireDeveloper, type AuthRequest } from "./middleware/auth";
+import {
+  authenticateToken,
+  hashPassword,
+  comparePassword,
+  generateToken,
+  requireAdmin,
+  requireDeveloper,
+  type AuthRequest,
+} from "./middleware/auth";
 import { upload } from "./services/upload";
-import { insertUserSchema, insertArticleSchema, insertCommentSchema, insertCategorySchema, insertSiteSettingSchema } from "@shared/schema";
+import {
+  insertUserSchema,
+  insertArticleSchema,
+  insertCommentSchema,
+  insertCategorySchema,
+  insertSiteSettingSchema,
+} from "@shared/schema";
 import { z } from "zod";
 import rateLimit from "express-rate-limit";
 import cors from "cors";
 import { OAuth2Client } from "google-auth-library";
-import bcrypt from 'bcrypt';
+import bcrypt from "bcrypt";
+import * as schema from "@shared/schema";
+import { db } from "./db";
+import { eq, desc } from "drizzle-orm";
 
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: Infinity, // limit each IP to 100 requests per windowMs
   message: "Terlalu banyak permintaan, coba lagi nanti",
 });
 
-
-const authLimiter = process.env.NODE_ENV === "production"
-  ? rateLimit({
-      windowMs: 15 * 60 * 1000, // 15 minutes
-      max: 5, // limit each IP to 5 auth requests per windowMs
-      message: "Terlalu banyak percobaan login, coba lagi nanti",
-    })
-  : (req: any, res: any, next: any) => next(); // No rate limit in development
+const authLimiter =
+  process.env.NODE_ENV === "production"
+    ? rateLimit({
+        windowMs: 15 * 60 * 1000, // 15 minutes
+        max: 5, // limit each IP to 5 auth requests per windowMs
+        message: "Terlalu banyak percobaan login, coba lagi nanti",
+      })
+    : (req: any, res: any, next: any) => next(); // No rate limit in development
 
 // Google OAuth setup
 const googleClient = new OAuth2Client(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
-  process.env.NODE_ENV === "production" 
+  process.env.NODE_ENV === "production"
     ? "https://your-domain.com/api/auth/google/callback"
     : "http://localhost:5000/api/auth/google/callback"
 );
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // CORS configuration
-  app.use(cors({
-    origin: process.env.NODE_ENV === "production" ? process.env.FRONTEND_URL : "*",
-    credentials: true,
-  }));
+  app.use(
+    cors({
+      origin:
+        process.env.NODE_ENV === "production" ? process.env.FRONTEND_URL : "*",
+      credentials: true,
+    })
+  );
 
   // Rate limiting
   app.use("/api", limiter);
@@ -55,15 +75,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
   app.post("/api/auth/register", async (req, res) => {
     try {
-      const { username, email, password, fullName } = insertUserSchema.extend({
-        password: z.string().min(6, "Password minimal 6 karakter"),
-        email: z.string().email("Format email tidak valid"),
-      }).parse(req.body);
+      const { username, email, password, fullName } = insertUserSchema
+        .extend({
+          password: z.string().min(6, "Password minimal 6 karakter"),
+          email: z.string().email("Format email tidak valid"),
+        })
+        .parse(req.body);
 
       // Check if user exists
-      const existingUser = await storage.getUserByEmail(email) || await storage.getUserByUsername(username);
+      const existingUser =
+        (await storage.getUserByEmail(email)) ||
+        (await storage.getUserByUsername(username));
       if (existingUser) {
-        return res.status(400).json({ message: "Email atau username sudah digunakan" });
+        return res
+          .status(400)
+          .json({ message: "Email atau username sudah digunakan" });
       }
 
       // Hash password
@@ -102,10 +128,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/auth/login", async (req, res) => {
     try {
-      const { email, password } = z.object({
-        email: z.string().email("Format email tidak valid"),
-        password: z.string().min(1, "Password diperlukan"),
-      }).parse(req.body);
+      const { email, password } = z
+        .object({
+          email: z.string().email("Format email tidak valid"),
+          password: z.string().min(1, "Password diperlukan"),
+        })
+        .parse(req.body);
 
       // Find user
       const user = await storage.getUserByEmail(email);
@@ -158,7 +186,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/auth/google", (req, res) => {
     const authUrl = googleClient.generateAuthUrl({
       access_type: "offline",
-      scope: ["https://www.googleapis.com/auth/userinfo.profile", "https://www.googleapis.com/auth/userinfo.email"],
+      scope: [
+        "https://www.googleapis.com/auth/userinfo.profile",
+        "https://www.googleapis.com/auth/userinfo.email",
+      ],
     });
     res.json({ url: authUrl });
   });
@@ -175,11 +206,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       googleClient.setCredentials(tokens);
 
       // Get user info from Google
-      const response = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
-        headers: {
-          Authorization: `Bearer ${tokens.access_token}`,
-        },
-      });
+      const response = await fetch(
+        "https://www.googleapis.com/oauth2/v2/userinfo",
+        {
+          headers: {
+            Authorization: `Bearer ${tokens.access_token}`,
+          },
+        }
+      );
       const googleUser = await response.json();
 
       // Check if user exists
@@ -187,7 +221,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!user) {
         // Create new user
-        const username = googleUser.email.split("@")[0] + Math.floor(Math.random() * 1000);
+        const username =
+          googleUser.email.split("@")[0] + Math.floor(Math.random() * 1000);
         user = await storage.createUser({
           username,
           email: googleUser.email,
@@ -220,18 +255,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/categories", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
-    try {
-      const categoryData = insertCategorySchema.parse(req.body);
-      const category = await storage.createCategory(categoryData);
-      res.status(201).json(category);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: error.errors[0].message });
+  app.post(
+    "/api/categories",
+    authenticateToken,
+    requireAdmin,
+    async (req: AuthRequest, res) => {
+      try {
+        const categoryData = insertCategorySchema.parse(req.body);
+        const category = await storage.createCategory(categoryData);
+        res.status(201).json(category);
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          return res.status(400).json({ message: error.errors[0].message });
+        }
+        res.status(500).json({ message: "Gagal membuat kategori" });
       }
-      res.status(500).json({ message: "Gagal membuat kategori" });
     }
-  });
+  );
 
   // Article routes
   app.get("/api/articles", async (req, res) => {
@@ -250,7 +290,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         published = true; // Show only published articles for public
       }
 
-      const result = await storage.getArticles(page, limit, categorySlug, search, published);
+      const result = await storage.getArticles(
+        page,
+        limit,
+        categorySlug,
+        search,
+        published
+      );
       res.json(result);
     } catch (error) {
       res.status(500).json({ message: "Gagal mengambil artikel" });
@@ -269,81 +315,107 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/articles", authenticateToken, requireAdmin, upload.single("coverImage"), async (req: AuthRequest, res) => {
-    try {
-      const articleData = insertArticleSchema.omit({ authorId: true }).parse({
-        ...req.body,
-        categoryId: parseInt(req.body.categoryId),
-        isPublished: req.body.isPublished === "true",
-        publishedAt: req.body.isPublished === "true" ? new Date() : null,
-      });
+  app.post(
+    "/api/articles",
+    authenticateToken,
+    requireAdmin,
+    upload.single("coverImage"),
+    async (req: AuthRequest, res) => {
+      try {
+        const articleData = insertArticleSchema.omit({ authorId: true }).parse({
+          ...req.body,
+          categoryId: parseInt(req.body.categoryId),
+          isPublished: req.body.isPublished === "true",
+          publishedAt: req.body.isPublished === "true" ? new Date() : null,
+        });
 
-      let coverImage = undefined;
-      if (req.body.imageUploadType === "url" && req.body.coverImageUrl) {
-        coverImage = req.body.coverImageUrl;
-      } else if (req.body.imageUploadType === "file" && (req as any).file) {
-        coverImage = `/uploads/${(req as any).file.filename}`;
+        let coverImage = undefined;
+        if (req.body.imageUploadType === "url" && req.body.coverImageUrl) {
+          coverImage = req.body.coverImageUrl;
+        } else if (req.body.imageUploadType === "file" && (req as any).file) {
+          coverImage = `/uploads/${(req as any).file.filename}`;
+        }
+
+        const article = await storage.createArticle({
+          ...articleData,
+          authorId: req.user!.id,
+          coverImage,
+        });
+
+        res.status(201).json(article);
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          return res.status(400).json({ message: error.errors[0].message });
+        }
+        res.status(500).json({ message: "Gagal membuat artikel" });
       }
-
-      const article = await storage.createArticle({
-        ...articleData,
-        authorId: req.user!.id,
-        coverImage,
-      });
-
-      res.status(201).json(article);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: error.errors[0].message });
-      }
-      res.status(500).json({ message: "Gagal membuat artikel" });
     }
-  });
+  );
 
-  app.put("/api/articles/:id", authenticateToken, requireAdmin, upload.single("coverImage"), async (req: AuthRequest, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const updates = insertArticleSchema.partial().omit({ authorId: true }).parse({
-        ...req.body,
-        categoryId: req.body.categoryId ? parseInt(req.body.categoryId) : undefined,
-        isPublished: req.body.isPublished !== undefined ? req.body.isPublished === "true" : undefined,
-        publishedAt: req.body.isPublished === "true" ? new Date() : undefined,
-      });
+  app.put(
+    "/api/articles/:id",
+    authenticateToken,
+    requireAdmin,
+    upload.single("coverImage"),
+    async (req: AuthRequest, res) => {
+      try {
+        const id = parseInt(req.params.id);
+        const updates = insertArticleSchema
+          .partial()
+          .omit({ authorId: true })
+          .parse({
+            ...req.body,
+            categoryId: req.body.categoryId
+              ? parseInt(req.body.categoryId)
+              : undefined,
+            isPublished:
+              req.body.isPublished !== undefined
+                ? req.body.isPublished === "true"
+                : undefined,
+            publishedAt:
+              req.body.isPublished === "true" ? new Date() : undefined,
+          });
 
-      let coverImage = updates.coverImage;
-      if (req.body.imageUploadType === "url" && req.body.coverImageUrl) {
-        coverImage = req.body.coverImageUrl;
-      } else if (req.body.imageUploadType === "file" && req.file) {
-        coverImage = `/uploads/${req.file.filename}`;
+        let coverImage = updates.coverImage;
+        if (req.body.imageUploadType === "url" && req.body.coverImageUrl) {
+          coverImage = req.body.coverImageUrl;
+        } else if (req.body.imageUploadType === "file" && req.file) {
+          coverImage = `/uploads/${req.file.filename}`;
+        }
+
+        if (coverImage !== undefined) {
+          updates.coverImage = coverImage;
+        }
+
+        if ((req as any).file) {
+          updates.coverImage = `/uploads/${(req as any).file.filename}`;
+        }
+
+        const article = await storage.updateArticle(id, updates);
+        res.json(article);
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          return res.status(400).json({ message: error.errors[0].message });
+        }
+        res.status(500).json({ message: "Gagal memperbarui artikel" });
       }
-
-      if (coverImage !== undefined) {
-        updates.coverImage = coverImage;
-      }
-
-      if ((req as any).file) {
-        updates.coverImage = `/uploads/${(req as any).file.filename}`;
-      }
-
-      const article = await storage.updateArticle(id, updates);
-      res.json(article);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: error.errors[0].message });
-      }
-      res.status(500).json({ message: "Gagal memperbarui artikel" });
     }
-  });
+  );
 
-  app.delete("/api/articles/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      await storage.deleteArticle(id);
-      res.json({ message: "Artikel berhasil dihapus" });
-    } catch (error) {
-      res.status(500).json({ message: "Gagal menghapus artikel" });
+  app.delete(
+    "/api/articles/:id",
+    authenticateToken,
+    requireAdmin,
+    async (req: AuthRequest, res) => {
+      try {
+        const id = parseInt(req.params.id);
+        await storage.deleteArticle(id);
+        res.json({ message: "Artikel berhasil dihapus" });
+      } catch (error) {
+        res.status(500).json({ message: "Gagal menghapus artikel" });
+      }
     }
-  });
+  );
 
   // Comment routes
   app.get("/api/articles/:articleId/comments", async (req, res) => {
@@ -356,107 +428,167 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/articles/:articleId/comments", authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      const articleId = parseInt(req.params.articleId);
-      const { content } = insertCommentSchema.omit({ authorId: true, articleId: true }).parse(req.body);
+  app.post(
+    "/api/articles/:articleId/comments",
+    authenticateToken,
+    async (req: AuthRequest, res) => {
+      try {
+        const articleId = parseInt(req.params.articleId);
+        const { content } = insertCommentSchema
+          .omit({ authorId: true, articleId: true })
+          .parse(req.body);
 
-      const comment = await storage.createComment({
-        content,
-        authorId: req.user!.id,
-        articleId,
-        isApproved: false, // Comments need moderation
-      });
+        const comment = await storage.createComment({
+          content,
+          authorId: req.user!.id,
+          articleId,
+          isApproved: false, // Comments need moderation
+        });
 
-      res.status(201).json({ message: "Komentar berhasil dikirim dan menunggu moderasi" });
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: error.errors[0].message });
+        res
+          .status(201)
+          .json({ message: "Komentar berhasil dikirim dan menunggu moderasi" });
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          return res.status(400).json({ message: error.errors[0].message });
+        }
+        res.status(500).json({ message: "Gagal mengirim komentar" });
       }
-      res.status(500).json({ message: "Gagal mengirim komentar" });
     }
-  });
+  );
 
-  app.get("/api/admin/comments", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
-    try {
-      const comments = await storage.getAllComments();
-      res.json(comments);
-    } catch (error) {
-      res.status(500).json({ message: "Gagal mengambil semua komentar" });
+  app.get(
+    "/api/admin/comments",
+    authenticateToken,
+    requireAdmin,
+    async (req: AuthRequest, res) => {
+      try {
+        const comments = await storage.getAllComments();
+        res.json(comments);
+      } catch (error) {
+        res.status(500).json({ message: "Gagal mengambil semua komentar" });
+      }
     }
-  });
+  );
 
-  app.get("/api/admin/comments/pending", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
-    try {
-      const comments = await storage.getPendingComments();
-      res.json(comments);
-    } catch (error) {
-      res.status(500).json({ message: "Gagal mengambil komentar yang menunggu moderasi" });
+  app.get(
+    "/api/admin/comments/pending",
+    authenticateToken,
+    requireAdmin,
+    async (req: AuthRequest, res) => {
+      try {
+        const comments = await storage.getPendingComments();
+        res.json(comments);
+      } catch (error) {
+        res
+          .status(500)
+          .json({ message: "Gagal mengambil komentar yang menunggu moderasi" });
+      }
     }
-  });
+  );
 
-  app.put("/api/admin/comments/:id/approve", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      await storage.updateComment(id, { isApproved: true });
-      res.json({ message: "Komentar berhasil disetujui" });
-    } catch (error) {
-      res.status(500).json({ message: "Gagal menyetujui komentar" });
+  app.put(
+    "/api/admin/comments/:id/approve",
+    authenticateToken,
+    requireAdmin,
+    async (req: AuthRequest, res) => {
+      try {
+        const id = parseInt(req.params.id);
+        await storage.updateComment(id, { isApproved: true });
+        res.json({ message: "Komentar berhasil disetujui" });
+      } catch (error) {
+        res.status(500).json({ message: "Gagal menyetujui komentar" });
+      }
     }
-  });
+  );
 
-  app.delete("/api/admin/comments/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      await storage.deleteComment(id);
-      res.json({ message: "Komentar berhasil dihapus" });
-    } catch (error) {
-      res.status(500).json({ message: "Gagal menghapus komentar" });
+  app.delete(
+    "/api/admin/comments/:id",
+    authenticateToken,
+    requireAdmin,
+    async (req: AuthRequest, res) => {
+      try {
+        const id = parseInt(req.params.id);
+        await storage.deleteComment(id);
+        res.json({ message: "Komentar berhasil dihapus" });
+      } catch (error) {
+        res.status(500).json({ message: "Gagal menghapus komentar" });
+      }
     }
-  });
+  );
 
   // Like routes
-  app.post("/api/articles/:articleId/like", authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      const articleId = parseInt(req.params.articleId);
-      const isLiked = await storage.toggleLike(req.user!.id, articleId);
-      res.json({ isLiked, message: isLiked ? "Artikel disukai" : "Like dibatalkan" });
-    } catch (error) {
-      res.status(500).json({ message: "Gagal memproses like" });
+  app.post(
+    "/api/articles/:articleId/like",
+    authenticateToken,
+    async (req: AuthRequest, res) => {
+      try {
+        const articleId = parseInt(req.params.articleId);
+        const isLiked = await storage.toggleLike(req.user!.id, articleId);
+        res.json({
+          isLiked,
+          message: isLiked ? "Artikel disukai" : "Like dibatalkan",
+        });
+      } catch (error) {
+        res.status(500).json({ message: "Gagal memproses like" });
+      }
     }
-  });
+  );
 
   // Bookmark routes
-  app.post("/api/articles/:articleId/bookmark", authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      const articleId = parseInt(req.params.articleId);
-      const isBookmarked = await storage.toggleBookmark(req.user!.id, articleId);
-      res.json({ isBookmarked, message: isBookmarked ? "Artikel dibookmark" : "Bookmark dibatalkan" });
-    } catch (error) {
-      res.status(500).json({ message: "Gagal memproses bookmark" });
+  app.post(
+    "/api/articles/:articleId/bookmark",
+    authenticateToken,
+    async (req: AuthRequest, res) => {
+      try {
+        const articleId = parseInt(req.params.articleId);
+        const isBookmarked = await storage.toggleBookmark(
+          req.user!.id,
+          articleId
+        );
+        res.json({
+          isBookmarked,
+          message: isBookmarked ? "Artikel dibookmark" : "Bookmark dibatalkan",
+        });
+      } catch (error) {
+        res.status(500).json({ message: "Gagal memproses bookmark" });
+      }
     }
-  });
+  );
 
-  app.get("/api/user/bookmarks", authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
-      const result = await storage.getUserBookmarks(req.user!.id, page, limit);
-      res.json(result);
-    } catch (error) {
-      res.status(500).json({ message: "Gagal mengambil bookmark" });
+  app.get(
+    "/api/user/bookmarks",
+    authenticateToken,
+    async (req: AuthRequest, res) => {
+      try {
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 10;
+        const result = await storage.getUserBookmarks(
+          req.user!.id,
+          page,
+          limit
+        );
+        res.json(result);
+      } catch (error) {
+        res.status(500).json({ message: "Gagal mengambil bookmark" });
+      }
     }
-  });
+  );
 
   // Statistics route
-  app.get("/api/admin/statistics", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
-    try {
-      const stats = await storage.getStatistics();
-      res.json(stats);
-    } catch (error) {
-      res.status(500).json({ message: "Gagal mengambil statistik" });
+  app.get(
+    "/api/admin/statistics",
+    authenticateToken,
+    requireAdmin,
+    async (req: AuthRequest, res) => {
+      try {
+        const stats = await storage.getStatistics();
+        res.json(stats);
+      } catch (error) {
+        res.status(500).json({ message: "Gagal mengambil statistik" });
+      }
     }
-  });
+  );
 
   // Site settings routes
   app.get("/api/settings/:key", async (req, res) => {
@@ -471,90 +603,121 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/dev/settings", authenticateToken, requireDeveloper, async (req: AuthRequest, res) => {
-    try {
-      const settings = await storage.getAllSiteSettings();
-      res.json(settings);
-    } catch (error) {
-      res.status(500).json({ message: "Gagal mengambil pengaturan" });
-    }
-  });
-
-  app.post("/api/dev/settings", authenticateToken, requireDeveloper, async (req: AuthRequest, res) => {
-    try {
-      const settingData = insertSiteSettingSchema.parse(req.body);
-      const setting = await storage.setSiteSetting(settingData);
-      res.json(setting);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: error.errors[0].message });
+  app.get(
+    "/api/dev/settings",
+    authenticateToken,
+    requireDeveloper,
+    async (req: AuthRequest, res) => {
+      try {
+        const settings = await storage.getAllSiteSettings();
+        res.json(settings);
+      } catch (error) {
+        res.status(500).json({ message: "Gagal mengambil pengaturan" });
       }
-      res.status(500).json({ message: "Gagal menyimpan pengaturan" });
     }
-  });
+  );
 
-  app.delete("/api/dev/settings/:key", authenticateToken, requireDeveloper, async (req: AuthRequest, res) => {
-    try {
-      await storage.deleteSiteSetting(req.params.key);
-      res.json({ message: "Pengaturan berhasil dihapus" });
-    } catch (error) {
-      res.status(500).json({ message: "Gagal menghapus pengaturan" });
+  app.post(
+    "/api/dev/settings",
+    authenticateToken,
+    requireDeveloper,
+    async (req: AuthRequest, res) => {
+      try {
+        const settingData = insertSiteSettingSchema.parse(req.body);
+        const setting = await storage.setSiteSetting(settingData);
+        res.json(setting);
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          return res.status(400).json({ message: error.errors[0].message });
+        }
+        res.status(500).json({ message: "Gagal menyimpan pengaturan" });
+      }
     }
-  });
+  );
+
+  app.delete(
+    "/api/dev/settings/:key",
+    authenticateToken,
+    requireDeveloper,
+    async (req: AuthRequest, res) => {
+      try {
+        await storage.deleteSiteSetting(req.params.key);
+        res.json({ message: "Pengaturan berhasil dihapus" });
+      } catch (error) {
+        res.status(500).json({ message: "Gagal menghapus pengaturan" });
+      }
+    }
+  );
 
   // System logs endpoint for developers
-  app.get("/api/dev/logs", authenticateToken, requireDeveloper, async (req: AuthRequest, res) => {
-    try {
-      // Return system information and recent activity
-      const stats = await storage.getStatistics();
-      const recentArticles = await storage.getArticles(1, 5);
-      const recentComments = await storage.getAllComments();
+  app.get(
+    "/api/dev/logs",
+    authenticateToken,
+    requireDeveloper,
+    async (req: AuthRequest, res) => {
+      try {
+        // Return system information and recent activity
+        const stats = await storage.getStatistics();
+        const recentArticles = await storage.getArticles(1, 5);
+        const recentComments = await storage.getAllComments();
 
-      const systemInfo = {
-        nodeVersion: process.version,
-        environment: process.env.NODE_ENV || "development",
-        uptime: process.uptime(),
-        memoryUsage: process.memoryUsage(),
-        timestamp: new Date().toISOString(),
-        statistics: stats,
-        recentActivity: {
-          articles: recentArticles.articles.slice(0, 3),
-          comments: recentComments.slice(0, 5),
-        }
-      };
+        const systemInfo = {
+          nodeVersion: process.version,
+          environment: process.env.NODE_ENV || "development",
+          uptime: process.uptime(),
+          memoryUsage: process.memoryUsage(),
+          timestamp: new Date().toISOString(),
+          statistics: stats,
+          recentActivity: {
+            articles: recentArticles.articles.slice(0, 3),
+            comments: recentComments.slice(0, 5),
+          },
+          databaseUrl: process.env.DATABASE_URL || "-",
+          jwtSecret: process.env.JWT_SECRET || "-",
+        };
 
-      res.json(systemInfo);
-    } catch (error) {
-      res.status(500).json({ message: "Gagal mengambil informasi sistem" });
+        res.json(systemInfo);
+      } catch (error) {
+        res.status(500).json({ message: "Gagal mengambil informasi sistem" });
+      }
     }
-  });
+  );
 
   // Real-time logs endpoint for developers
-  app.get("/api/dev/logs/realtime", authenticateToken, requireDeveloper, async (req: AuthRequest, res) => {
-    try {
-      const logs = [
-        {
-          timestamp: new Date().toISOString(),
-          level: "info",
-          message: `Server uptime: ${Math.floor(process.uptime() / 60)} minutes`,
-        },
-        {
-          timestamp: new Date().toISOString(),
-          level: "info", 
-          message: `Memory usage: ${Math.round(process.memoryUsage().rss / 1024 / 1024)} MB`,
-        },
-        {
-          timestamp: new Date().toISOString(),
-          level: "success",
-          message: "All systems operational",
-        }
-      ];
+  app.get(
+    "/api/dev/logs/realtime",
+    authenticateToken,
+    requireDeveloper,
+    async (req: AuthRequest, res) => {
+      try {
+        const logs = [
+          {
+            timestamp: new Date().toISOString(),
+            level: "info",
+            message: `Server uptime: ${Math.floor(
+              process.uptime() / 60
+            )} minutes`,
+          },
+          {
+            timestamp: new Date().toISOString(),
+            level: "info",
+            message: `Memory usage: ${Math.round(
+              process.memoryUsage().rss / 1024 / 1024
+            )} MB`,
+          },
+          {
+            timestamp: new Date().toISOString(),
+            level: "success",
+            message: "All systems operational",
+          },
+        ];
 
-      res.json(logs);
-    } catch (error) {
-      res.status(500).json({ message: "Gagal mengambil log realtime" });
+        res.json(logs);
+      } catch (error) {
+        res.status(500).json({ message: "Gagal mengambil log realtime" });
+      }
     }
-  });
+  );
 
   // Initialize default categories
   const initializeData = async () => {
@@ -562,11 +725,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const categories = await storage.getCategories();
       if (categories.length === 0) {
         const defaultCategories = [
-          { name: "Nasional", slug: "nasional", description: "Berita nasional Indonesia", color: "#DC2626" },
-          { name: "Ekonomi", slug: "ekonomi", description: "Berita ekonomi dan bisnis", color: "#059669" },
-          { name: "Olahraga", slug: "olahraga", description: "Berita olahraga", color: "#2563EB" },
-          { name: "Teknologi", slug: "teknologi", description: "Berita teknologi dan inovasi", color: "#7C3AED" },
-          { name: "Budaya", slug: "budaya", description: "Berita budaya dan seni", color: "#DC2626" },
+          {
+            name: "Nasional",
+            slug: "nasional",
+            description: "Berita nasional Indonesia",
+            color: "#DC2626",
+          },
+          {
+            name: "Ekonomi",
+            slug: "ekonomi",
+            description: "Berita ekonomi dan bisnis",
+            color: "#059669",
+          },
+          {
+            name: "Olahraga",
+            slug: "olahraga",
+            description: "Berita olahraga",
+            color: "#2563EB",
+          },
+          {
+            name: "Teknologi",
+            slug: "teknologi",
+            description: "Berita teknologi dan inovasi",
+            color: "#7C3AED",
+          },
+          {
+            name: "Budaya",
+            slug: "budaya",
+            description: "Berita budaya dan seni",
+            color: "#DC2626",
+          },
         ];
 
         for (const category of defaultCategories) {
@@ -576,7 +764,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // (Removed) Do not create default admin and developer users automatically
-
     } catch (error) {
       console.error("Error initializing data:", error);
     }
@@ -585,66 +772,383 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize data on server start
   await initializeData();
 
-  app.get("/api/user/profile", authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      const user = await storage.getUserById(req.user!.id);
-      if (!user) {
-        return res.status(404).json({ message: "User tidak ditemukan" });
+  app.get(
+    "/api/user/profile",
+    authenticateToken,
+    async (req: AuthRequest, res) => {
+      try {
+        const user = await storage.getUserById(req.user!.id);
+        if (!user) {
+          return res.status(404).json({ message: "User tidak ditemukan" });
+        }
+        res.json(user);
+      } catch (error) {
+        res.status(500).json({ message: "Gagal mengambil profil pengguna" });
       }
+    }
+  );
+
+  app.put(
+    "/api/user/profile",
+    authenticateToken,
+    async (req: AuthRequest, res) => {
+      try {
+        const { fullName, email, currentPassword, newPassword } = req.body;
+        const userId = req.user!.id;
+
+        // Validasi input
+        if (!fullName || !email) {
+          return res.status(400).json({ message: "Nama dan email diperlukan" });
+        }
+
+        // Jika ingin mengubah password, validasi password lama
+        if (newPassword) {
+          if (!currentPassword) {
+            return res
+              .status(400)
+              .json({
+                message: "Password lama diperlukan untuk mengubah password",
+              });
+          }
+
+          const user = await storage.getUserById(userId);
+          if (
+            !user ||
+            !(await bcrypt.compare(currentPassword, user.password))
+          ) {
+            return res
+              .status(400)
+              .json({ message: "Password lama tidak benar" });
+          }
+        }
+
+        const updateData: any = { fullName, email };
+
+        if (newPassword) {
+          updateData.password = await hashPassword(newPassword);
+        }
+
+        await storage.updateUser(userId, updateData);
+
+        res.json({ message: "Profil berhasil diperbarui" });
+      } catch (error) {
+        console.error("Error updating profile:", error);
+        res.status(500).json({ message: "Gagal memperbarui profil" });
+      }
+    }
+  );
+
+  app.put(
+    "/api/user/notifications",
+    authenticateToken,
+    async (req: AuthRequest, res) => {
+      try {
+        const notifications = req.body;
+        const userId = req.user!.id;
+
+        // For now, just return success since we don't have notifications table
+        // In a real app, you'd store these preferences in a user_preferences table
+        res.json({
+          message: "Pengaturan notifikasi berhasil diperbarui",
+          notifications,
+        });
+      } catch (error) {
+        console.error("Error updating notifications:", error);
+        res
+          .status(500)
+          .json({ message: "Gagal memperbarui pengaturan notifikasi" });
+      }
+    }
+  );
+
+  // Get all users (developer/admin only)
+  app.get(
+    "/api/dev/users",
+    authenticateToken,
+    requireDeveloper,
+    async (req, res) => {
+      try {
+        const users = await storage.getAllUsers();
+        res.json(users);
+      } catch (error) {
+        res.status(500).json({ message: "Gagal mengambil data pengguna" });
+      }
+    }
+  );
+
+  // Update user role (developer/admin only, with password confirmation and audit log)
+  app.post("/api/dev/users/:id/role", authenticateToken, requireDeveloper, async (req, res) => {
+    try {
+      const { role, password } = req.body;
+      const id = parseInt(req.params.id);
+      // Perbaiki typing agar req.user dikenali
+      const actorId = (req as any).user?.id || (req as import("./middleware/auth").AuthRequest).user?.id;
+      if (!role || !password) return res.status(400).json({ message: "Role dan password diperlukan" });
+      // Verifikasi password user yang sedang login
+      const actor = await storage.getUserById(actorId);
+      if (!actor) return res.status(401).json({ message: "User tidak ditemukan" });
+      const valid = await comparePassword(password, actor.password);
+      if (!valid) return res.status(401).json({ message: "Password salah" });
+      // Cek user target
+      const targetUser = await storage.getUserById(id);
+      if (!targetUser) return res.status(404).json({ message: "User target tidak ditemukan" });
+      const oldRole = targetUser.role;
+      // Update role
+      const user = await storage.updateUserRole(id, role);
+      // Catat ke audit log
+      await db.insert(schema.userLogs).values({
+        actorId,
+        targetUserId: id,
+        action: "change_role",
+        detail: `from ${oldRole} to ${role}`,
+      });
       res.json(user);
     } catch (error) {
-      res.status(500).json({ message: "Gagal mengambil profil pengguna" });
+      const errorMessage = (error instanceof Error && error.message) ? error.message : "Gagal mengubah role pengguna";
+      res.status(400).json({ message: errorMessage });
     }
   });
 
-  app.put("/api/user/profile", authenticateToken, async (req: AuthRequest, res) => {
+  // CRUD API untuk database (developer only)
+  app.get(
+    "/api/dev/db",
+    authenticateToken,
+    requireDeveloper,
+    async (req, res) => {
+      try {
+        const { table } = req.query;
+        if (!table || typeof table !== "string")
+          return res.status(400).json({ message: "Table diperlukan" });
+        const allowedTables = [
+          "articles",
+          "categories",
+          "users",
+          "comments",
+          "bookmarks",
+          "likes",
+        ];
+        if (!allowedTables.includes(table))
+          return res.status(400).json({ message: "Table tidak valid" });
+        const tableObj = (schema as any)[table];
+        if (!tableObj)
+          return res.status(400).json({ message: "Table tidak ditemukan" });
+        // Perbaikan: ambil field kolom dari _columns, jika tidak ada fallback ke Object.keys(tableObj) yang bertipe DrizzleColumn
+        let columns: string[] = [];
+        if (tableObj["_columns"]) {
+          columns = Object.keys(tableObj["_columns"]);
+        } else {
+          columns = Object.keys(tableObj).filter(
+            (k) =>
+              tableObj[k] &&
+              typeof tableObj[k] === "object" &&
+              "name" in tableObj[k]
+          );
+        }
+        if (columns.length === 0)
+          return res
+            .status(500)
+            .json({ message: "Tidak ada field pada tabel" });
+        // Ambil data dengan select kolom dinamis
+        const rows = await db
+          .select({
+            ...Object.fromEntries(columns.map((col) => [col, tableObj[col]])),
+          })
+          .from(tableObj);
+        // Batasi jumlah data yang dikirim ke frontend agar tabel tidak terlalu besar
+        let limitedRows = rows;
+        let truncated = false;
+        const MAX_ROWS = 60;
+        if (rows.length > MAX_ROWS) {
+          limitedRows = rows.slice(0, MAX_ROWS);
+          truncated = true;
+        }
+        res.json({ columns, rows: limitedRows, truncated });
+      } catch (error) {
+        res.status(500).json({ message: "Gagal mengambil data database" });
+      }
+    }
+  );
+
+  app.delete(
+    "/api/dev/db",
+    authenticateToken,
+    requireDeveloper,
+    async (req, res) => {
+      try {
+        const { table, id } = req.query;
+        if (!table || typeof table !== "string" || !id)
+          return res.status(400).json({ message: "Table dan id diperlukan" });
+        const allowedTables = [
+          "articles",
+          "categories",
+          "users",
+          "comments",
+          "bookmarks",
+          "likes",
+        ];
+        if (!allowedTables.includes(table))
+          return res.status(400).json({ message: "Table tidak valid" });
+        const tableObj = (schema as any)[table];
+        if (!tableObj)
+          return res.status(400).json({ message: "Table tidak ditemukan" });
+        await db.delete(tableObj).where(eq(tableObj.id, Number(id)));
+        res.json({ message: "Data berhasil dihapus" });
+      } catch (error) {
+        res.status(500).json({ message: "Gagal menghapus data" });
+      }
+    }
+  );
+
+  app.post(
+    "/api/dev/db",
+    authenticateToken,
+    requireDeveloper,
+    async (req, res) => {
+      try {
+        const { table } = req.query;
+        if (!table || typeof table !== "string")
+          return res.status(400).json({ message: "Table diperlukan" });
+        const allowedTables = [
+          "articles",
+          "categories",
+          "users",
+          "comments",
+          "bookmarks",
+          "likes",
+        ];
+        if (!allowedTables.includes(table))
+          return res.status(400).json({ message: "Table tidak valid" });
+        const tableObj = (schema as any)[table];
+        if (!tableObj)
+          return res.status(400).json({ message: "Table tidak ditemukan" });
+        const data = req.body;
+        const columns = Object.keys(tableObj.$inferInsert ?? {}).filter(
+          (k) => k !== "id"
+        );
+        for (const col of columns) {
+          if (typeof data[col] === "undefined")
+            return res.status(400).json({ message: `Kolom ${col} diperlukan` });
+        }
+        const insertedArr = await db.insert(tableObj).values(data).returning();
+        const inserted = Array.isArray(insertedArr)
+          ? insertedArr[0]
+          : insertedArr;
+        res.json(inserted);
+      } catch (error) {
+        res.status(500).json({ message: "Gagal menambah data" });
+      }
+    }
+  );
+
+  app.put(
+    "/api/dev/db",
+    authenticateToken,
+    requireDeveloper,
+    async (req, res) => {
+      try {
+        const { table } = req.query;
+        if (!table || typeof table !== "string")
+          return res.status(400).json({ message: "Table diperlukan" });
+        const allowedTables = [
+          "articles",
+          "categories",
+          "users",
+          "comments",
+          "bookmarks",
+          "likes",
+        ];
+        if (!allowedTables.includes(table))
+          return res.status(400).json({ message: "Table tidak valid" });
+        const tableObj = (schema as any)[table];
+        if (!tableObj)
+          return res.status(400).json({ message: "Table tidak ditemukan" });
+        const data = req.body;
+        if (!data.id) return res.status(400).json({ message: "ID diperlukan" });
+        const columns = Object.keys(tableObj.$inferInsert ?? {}).filter(
+          (k) => k !== "id"
+        );
+        for (const col of columns) {
+          if (typeof data[col] === "undefined")
+            return res.status(400).json({ message: `Kolom ${col} diperlukan` });
+        }
+        const updatedArr = await db
+          .update(tableObj)
+          .set(data)
+          .where(eq(tableObj.id, data.id))
+          .returning();
+        const updated = Array.isArray(updatedArr) ? updatedArr[0] : updatedArr;
+        res.json(updated);
+      } catch (error) {
+        res.status(500).json({ message: "Gagal mengubah data" });
+      }
+    }
+  );
+
+  // DEBUG: log schema keys to verify tableObj
+  console.log("SCHEMA TABLES:", Object.keys(schema));
+
+  // Endpoint untuk mengambil log perubahan role user
+  app.get("/api/dev/user-logs", authenticateToken, requireDeveloper, async (req, res) => {
     try {
-      const { fullName, email, currentPassword, newPassword } = req.body;
-      const userId = req.user!.id;
-
-      // Validasi input
-      if (!fullName || !email) {
-        return res.status(400).json({ message: "Nama dan email diperlukan" });
-      }
-
-      // Jika ingin mengubah password, validasi password lama
-      if (newPassword) {
-        if (!currentPassword) {
-          return res.status(400).json({ message: "Password lama diperlukan untuk mengubah password" });
-        }
-
-        const user = await storage.getUserById(userId);
-        if (!user || !(await bcrypt.compare(currentPassword, user.password))) {
-          return res.status(400).json({ message: "Password lama tidak benar" });
-        }
-      }
-
-      const updateData: any = { fullName, email };
-
-      if (newPassword) {
-        updateData.password = await hashPassword(newPassword);
-      }
-
-      await storage.updateUser(userId, updateData);
-
-      res.json({ message: "Profil berhasil diperbarui" });
+      // Join ke tabel users untuk ambil nama pelaku dan target
+      const logs = await db
+        .select({
+          id: schema.userLogs.id,
+          actorId: schema.userLogs.actorId,
+          targetUserId: schema.userLogs.targetUserId,
+          action: schema.userLogs.action,
+          detail: schema.userLogs.detail,
+          createdAt: schema.userLogs.createdAt,
+          actorName: schema.users.username,
+          targetName: schema.users.fullName,
+          targetUsername: schema.users.username,
+        })
+        .from(schema.userLogs)
+        .leftJoin(schema.users, eq(schema.userLogs.actorId, schema.users.id))
+        .orderBy(desc(schema.userLogs.createdAt));
+      res.json(logs);
     } catch (error) {
-      console.error("Error updating profile:", error);
-      res.status(500).json({ message: "Gagal memperbarui profil" });
+      res.status(500).json({ message: "Gagal mengambil log user" });
     }
   });
 
-  app.put("/api/user/notifications", authenticateToken, async (req: AuthRequest, res) => {
+  // Forgot password - request reset
+  app.post("/api/auth/forgot-password", async (req, res) => {
     try {
-      const notifications = req.body;
-      const userId = req.user!.id;
-
-      // For now, just return success since we don't have notifications table
-      // In a real app, you'd store these preferences in a user_preferences table
-      res.json({ message: "Pengaturan notifikasi berhasil diperbarui", notifications });
+      const { email } = req.body;
+      if (!email) return res.status(400).json({ message: "Email diperlukan" });
+      const user = await storage.getUserByEmail(email);
+      if (!user) return res.status(404).json({ message: "Email tidak ditemukan" });
+      // Generate token (simple, for demo: base64 userId + timestamp)
+      const token = Buffer.from(`${user.id}:${Date.now()}`).toString("base64");
+      // Simpan token ke database atau cache jika ingin lebih aman (TODO: implementasi production)
+      // Kirim email (dummy, tampilkan di response untuk demo)
+      // TODO: Ganti dengan pengiriman email asli
+      const resetUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/reset-password?token=${token}`;
+      // Logika kirim email di sini (atau gunakan nodemailer di production)
+      res.json({ message: "Link reset password telah dikirim ke email (dummy)", resetUrl });
     } catch (error) {
-      console.error("Error updating notifications:", error);
-      res.status(500).json({ message: "Gagal memperbarui pengaturan notifikasi" });
+      res.status(500).json({ message: "Gagal memproses permintaan reset password" });
+    }
+  });
+
+  // Reset password - submit new password
+  app.post("/api/auth/reset-password", async (req, res) => {
+    try {
+      const { token, password } = req.body;
+      if (!token || !password) return res.status(400).json({ message: "Token dan password baru diperlukan" });
+      // Decode token (base64 userId:timestamp)
+      const [userIdStr] = Buffer.from(token, "base64").toString().split(":");
+      const userId = parseInt(userIdStr);
+      if (!userId) return res.status(400).json({ message: "Token tidak valid" });
+      const user = await storage.getUserById(userId);
+      if (!user) return res.status(404).json({ message: "User tidak ditemukan" });
+      // Update password
+      const hashed = await hashPassword(password);
+      await storage.updateUser(userId, { password: hashed });
+      res.json({ message: "Password berhasil direset, silakan login dengan password baru." });
+    } catch (error) {
+      res.status(500).json({ message: "Gagal reset password" });
     }
   });
 
