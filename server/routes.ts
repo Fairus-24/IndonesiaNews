@@ -21,7 +21,6 @@ import {
 import { z } from "zod";
 import rateLimit from "express-rate-limit";
 import cors from "cors";
-import { OAuth2Client } from "google-auth-library";
 import bcrypt from "bcrypt";
 import * as schema from "@shared/schema";
 import { db } from "./db";
@@ -42,15 +41,6 @@ const authLimiter =
         message: "Terlalu banyak percobaan login, coba lagi nanti",
       })
     : (req: any, res: any, next: any) => next(); // No rate limit in development
-
-// Google OAuth setup
-const googleClient = new OAuth2Client(
-  process.env.GOOGLE_CLIENT_ID,
-  process.env.GOOGLE_CLIENT_SECRET,
-  process.env.NODE_ENV === "production"
-    ? "https://your-domain.com/api/auth/google/callback"
-    : "http://localhost:5000/api/auth/google/callback"
-);
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // CORS configuration
@@ -182,69 +172,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // Google OAuth routes
-  app.get("/api/auth/google", (req, res) => {
-    const authUrl = googleClient.generateAuthUrl({
-      access_type: "offline",
-      scope: [
-        "https://www.googleapis.com/auth/userinfo.profile",
-        "https://www.googleapis.com/auth/userinfo.email",
-      ],
-    });
-    res.json({ url: authUrl });
-  });
-
-  app.get("/api/auth/google/callback", async (req, res) => {
-    try {
-      const { code } = req.query;
-      if (!code || typeof code !== "string") {
-        return res.redirect("/login?error=google_auth_failed");
-      }
-
-      // Exchange code for tokens
-      const { tokens } = await googleClient.getToken(code);
-      googleClient.setCredentials(tokens);
-
-      // Get user info from Google
-      const response = await fetch(
-        "https://www.googleapis.com/oauth2/v2/userinfo",
-        {
-          headers: {
-            Authorization: `Bearer ${tokens.access_token}`,
-          },
-        }
-      );
-      const googleUser = await response.json();
-
-      // Check if user exists
-      let user = await storage.getUserByEmail(googleUser.email);
-
-      if (!user) {
-        // Create new user
-        const username =
-          googleUser.email.split("@")[0] + Math.floor(Math.random() * 1000);
-        user = await storage.createUser({
-          username,
-          email: googleUser.email,
-          password: await hashPassword(Math.random().toString(36)), // Random password for Google users
-          fullName: googleUser.name || googleUser.email,
-          role: "USER",
-          avatar: googleUser.picture,
-          isActive: true,
-        });
-      }
-
-      // Generate JWT token
-      const token = generateToken(user);
-
-      // Redirect to frontend with token
-      res.redirect(`/?token=${token}`);
-    } catch (error) {
-      console.error("Google OAuth error:", error);
-      res.redirect("/login?error=google_auth_failed");
-    }
-  });
-
   // Category routes
   app.get("/api/categories", async (req, res) => {
     try {
@@ -274,22 +201,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   );
 
   // Article routes
-  app.get("/api/articles", async (req, res) => {
+app.get("/api/articles", async (req, res) => {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;
       const categorySlug = req.query.category as string;
       const search = req.query.search as string;
-      // Fix: Handle different published parameter values properly
-      // If published="false", show all articles (for admin)
-      // If published="true" or not specified, show only published articles (for public)
       let published: boolean | undefined;
       if (req.query.published === "false") {
-        published = undefined; // Show all articles for admin
+        published = undefined;
       } else {
-        published = true; // Show only published articles for public
+        published = true;
       }
 
+      const userId = (req as AuthRequest).user?.id;
       const result = await storage.getArticles(
         page,
         limit,
@@ -297,23 +222,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
         search,
         published
       );
+
+      // Tambahkan properti likedByCurrentUser & bookmarkedByCurrentUser
+      if (userId) {
+        const [userLikes, userBookmarks] = await Promise.all([
+          storage.getUserLikes(userId),
+          storage.getUserBookmarks(userId, 1, 10000),
+        ]);
+        const likedIds = new Set(userLikes.map((like) => like.articleId));
+        const bookmarkedIds = new Set(
+          userBookmarks.bookmarks.map((b) => b.id)
+        );
+        result.articles = result.articles.map((article) => ({
+          ...article,
+          likedByCurrentUser: likedIds.has(article.id),
+          bookmarkedByCurrentUser: bookmarkedIds.has(article.id),
+        }));
+      } else {
+        result.articles = result.articles.map((article) => ({
+          ...article,
+          likedByCurrentUser: false,
+          bookmarkedByCurrentUser: false,
+        }));
+      }
       res.json(result);
     } catch (error) {
       res.status(500).json({ message: "Gagal mengambil artikel" });
     }
   });
 
-  app.get("/api/articles/:slug", async (req, res) => {
-    try {
-      const article = await storage.getArticleBySlug(req.params.slug);
-      if (!article) {
-        return res.status(404).json({ message: "Artikel tidak ditemukan" });
-      }
-      res.json(article);
-    } catch (error) {
-      res.status(500).json({ message: "Gagal mengambil artikel" });
+app.get("/api/articles/:slug", async (req, res) => {
+  try {
+    const article = await storage.getArticleBySlug(req.params.slug);
+    if (!article) {
+      return res.status(404).json({ message: "Artikel tidak ditemukan" });
     }
-  });
+    // Cek status like/bookmark jika ada token Authorization
+    let likedByCurrentUser = false;
+    let bookmarkedByCurrentUser = false;
+    const authHeader = req.headers["authorization"];
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      try {
+        const token = authHeader.split(" ")[1];
+        const jwt = require("jsonwebtoken");
+        const JWT_SECRET = process.env.JWT_SECRET || "default_jwt_secret_key";
+        const decoded = jwt.verify(token, JWT_SECRET);
+        const userId = decoded.userId;
+        if (userId) {
+          const [userLikes, userBookmarks] = await Promise.all([
+            storage.getUserLikes(userId),
+            storage.getUserBookmarks(userId, 1, 10000),
+          ]);
+          likedByCurrentUser = userLikes.some((like) => like.articleId === article.id);
+          bookmarkedByCurrentUser = userBookmarks.bookmarks.some((b) => b.id === article.id);
+        }
+      } catch (e) {
+        // token invalid, biarkan status false
+      }
+    }
+    res.json({ ...article, likedByCurrentUser, bookmarkedByCurrentUser });
+  } catch (error) {
+    res.status(500).json({ message: "Gagal mengambil artikel" });
+  }
+});
 
   app.post(
     "/api/articles",

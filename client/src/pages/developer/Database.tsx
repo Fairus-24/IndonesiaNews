@@ -2,17 +2,27 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, Users, BookOpen, MessageCircle, Bookmark, ThumbsUp } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 
-export default function DatabaseManager() {
+export default function Database() {
   const [activeTable, setActiveTable] = useState("articles");
   const [editRow, setEditRow] = useState<any | null>(null);
   const [showAdd, setShowAdd] = useState(false);
-  const tables = ["articles", "categories", "users", "comments", "bookmarks", "likes"];
+  const [confirmAction, setConfirmAction] = useState<null | { type: "edit" | "delete" | "add"; data?: any }>(null);
+  const [confirmChecked, setConfirmChecked] = useState(false);
+  const tables = [
+    { key: "articles", label: "Artikel", icon: <BookOpen className="w-4 h-4 mr-1" /> },
+    { key: "categories", label: "Kategori", icon: <Table className="w-4 h-4 mr-1" /> },
+    { key: "users", label: "User", icon: <Users className="w-4 h-4 mr-1" /> },
+    { key: "comments", label: "Komentar", icon: <MessageCircle className="w-4 h-4 mr-1" /> },
+    { key: "bookmarks", label: "Bookmark", icon: <Bookmark className="w-4 h-4 mr-1" /> },
+    { key: "likes", label: "Like", icon: <ThumbsUp className="w-4 h-4 mr-1" /> },
+  ];
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -77,18 +87,25 @@ export default function DatabaseManager() {
     <Card className="mb-8">
       <CardHeader>
         <CardTitle>Manajemen Database</CardTitle>
-        <Button size="sm" className="ml-2" onClick={() => setShowAdd(true)}>Tambah Data</Button>
+        <Button size="sm" className="ml-2" onClick={() => setConfirmAction({ type: "add" })}>Tambah Data</Button>
       </CardHeader>
       <CardContent>
-        <Tabs value={activeTable} onValueChange={setActiveTable} className="mb-4">
-          <TabsList>
-            {tables.map((table) => (
-              <TabsTrigger key={table} value={table}>
-                {table.charAt(0).toUpperCase() + table.slice(1)}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+        <div className="mb-4 w-full flex justify-center">
+          <Tabs value={activeTable} onValueChange={setActiveTable}>
+            <TabsList className="gap-2 bg-gray-50 border rounded-lg p-1 shadow-sm w-auto inline-flex">
+              {tables.map((table) => (
+                <TabsTrigger
+                  key={table.key}
+                  value={table.key}
+                  className="flex items-center gap-1 px-4 py-2 rounded-md font-semibold transition-all data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=inactive]:bg-white data-[state=inactive]:text-gray-700 hover:bg-indigo-100"
+                >
+                  {table.icon}
+                  {table.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        </div>
         {isLoading ? (
           <div>Loading...</div>
         ) : (
@@ -118,8 +135,37 @@ export default function DatabaseManager() {
                         </td>
                       ))}
                       <td className="border px-2 py-1">
-                        <Button size="sm" variant="outline" onClick={() => setEditRow(row)}>Edit</Button>
-                        <Button size="sm" variant="destructive" className="ml-2" onClick={() => deleteMutation.mutate(row.id)}>Hapus</Button>
+                        <Button size="sm" variant="outline" onClick={() => setConfirmAction({ type: "edit", data: row })}>Edit</Button>
+                        <Button size="sm" variant="destructive" className="ml-2" onClick={() => setConfirmAction({ type: "delete", data: row })}>Hapus</Button>
+      {/* Konfirmasi Dialog */}
+      <Dialog open={!!confirmAction} onOpenChange={v => { if (!v) { setConfirmAction(null); setConfirmChecked(false); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>PERINGATAN KERAS!</DialogTitle>
+          </DialogHeader>
+          <div className="text-red-600 font-bold mb-2">Aksi ini akan mengubah data database secara langsung. Tindakan salah dapat menyebabkan kerusakan data permanen!</div>
+          <div className="mb-2">
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={confirmChecked} onChange={e => setConfirmChecked(e.target.checked)} />
+              <span>Saya paham dan bertanggung jawab atas perubahan ini.</span>
+            </label>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setConfirmAction(null); setConfirmChecked(false); }}>Batal</Button>
+            <Button disabled={!confirmChecked} onClick={() => {
+              if (!confirmAction) return;
+              if (confirmAction.type === "delete") {
+                deleteMutation.mutate(confirmAction.data.id);
+              } else if (confirmAction.type === "edit") {
+                setEditRow(confirmAction.data);
+              } else if (confirmAction.type === "add") {
+                setShowAdd(true);
+              }
+              setConfirmAction(null); setConfirmChecked(false);
+            }}>Lanjutkan & Konfirmasi</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
                       </td>
                     </tr>
                   ))}

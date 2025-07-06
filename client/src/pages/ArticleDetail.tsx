@@ -1,7 +1,7 @@
 import { useSiteSettings } from "@/lib/siteSettings";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -32,6 +32,10 @@ export default function ArticleDetail() {
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [location, setLocation] = useLocation();
 
+  // Tambahkan state lokal untuk like dan bookmark count
+  const [likeCount, setLikeCount] = useState(0);
+  const [bookmarkCount, setBookmarkCount] = useState(0);
+
   // Fetch article
   const { data: article, isLoading: articleLoading } = useQuery({
     queryKey: ["/api/articles", slug],
@@ -46,6 +50,24 @@ export default function ArticleDetail() {
       return response.json() as Promise<Article>;
     },
   });
+
+  // Sync state lokal dengan data artikel saat data berubah
+  useEffect(() => {
+    if (article) {
+      setLikeCount(article._count.likes);
+      setBookmarkCount(article._count.bookmarks);
+    }
+  }, [article]);
+
+  // Sync state liked/bookmarked dari data user (jika user login)
+  useEffect(() => {
+    if (article && article.likedByCurrentUser !== undefined) {
+      setIsLiked(article.likedByCurrentUser);
+    }
+    if (article && article.bookmarkedByCurrentUser !== undefined) {
+      setIsBookmarked(article.bookmarkedByCurrentUser);
+    }
+  }, [article && article.likedByCurrentUser, article && article.bookmarkedByCurrentUser]);
 
   // Fetch comments (feature flag)
   const commentsEnabled = siteSettings.feature_flags?.comments !== false;
@@ -72,6 +94,7 @@ export default function ArticleDetail() {
     onSuccess: async (response) => {
       const data = await response.json();
       setIsLiked(data.isLiked);
+      setLikeCount((prev) => data.isLiked ? prev + 1 : prev - 1);
       toast({ description: data.message });
       queryClient.invalidateQueries({ queryKey: ["/api/articles", slug] });
     },
@@ -89,6 +112,7 @@ export default function ArticleDetail() {
     onSuccess: async (response) => {
       const data = await response.json();
       setIsBookmarked(data.isBookmarked);
+      setBookmarkCount((prev) => data.isBookmarked ? prev + 1 : prev - 1);
       toast({ description: data.message });
       queryClient.invalidateQueries({ queryKey: ["/api/articles", slug] });
     },
@@ -240,7 +264,7 @@ export default function ArticleDetail() {
             disabled={likeMutation.isPending}
           >
             <Heart className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
-            <span>{article._count.likes}</span>
+            <span>{likeCount}</span>
             <span>Suka</span>
           </Button>
 
@@ -260,7 +284,7 @@ export default function ArticleDetail() {
             disabled={bookmarkMutation.isPending}
           >
             <Bookmark className={`h-4 w-4 ${isBookmarked ? 'fill-current' : ''}`} />
-            <span>{article._count.bookmarks}</span>
+            <span>{bookmarkCount}</span>
             <span>Simpan</span>
           </Button>
         </div>

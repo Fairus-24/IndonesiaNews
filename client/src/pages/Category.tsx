@@ -154,7 +154,7 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
       {/* Articles Grid */}
       <section>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-          {articles.map((article) => (
+          {articles.map((article: Article) => (
             <ArticleCard key={article.id} article={article} />
           ))}
         </div>

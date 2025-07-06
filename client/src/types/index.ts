@@ -34,6 +34,8 @@ export interface Article {
     comments: number;
     bookmarks: number;
   };
+  likedByCurrentUser?: boolean;
+  bookmarkedByCurrentUser?: boolean;
 }
 
 export interface Comment {

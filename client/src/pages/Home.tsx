@@ -216,7 +216,7 @@ export default function Home() {
               <h3 className="text-xl font-bold text-gray-900 border-b-2 border-indonesia-red pb-2">
                 Berita Populer
               </h3>
-              {articles.slice(3, 6).map((article: Article) => (
+              {articles.slice(3, 5).map((article: Article) => (
                 <Card key={article.id} className="group cursor-pointer" onClick={() => setLocation(`/article/${article.slug}`)} title={article.title}>
                   <CardContent className="p-4">
                     {/* {article.coverImage && (
@@ -298,13 +298,13 @@ export default function Home() {
       {/* Articles Grid */}
       <section>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-          {articles.map((article: Article) => (
+          {articles.slice(0, page * 9).map((article: Article) => (
             <ArticleCard key={article.id} article={article} />
           ))}
         </div>
 
         {/* Load More Button */}
-        {hasMore && (
+        {articles.length > page * 9 && (
           <div className="text-center">
             <Button
               onClick={loadMore}

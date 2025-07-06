@@ -191,7 +191,7 @@ export class DatabaseStorage implements IStorage {
     categorySlug?: string,
     search?: string,
     published?: boolean
-  ): Promise<{ articles: ArticleWithDetails[]; total: number }> {
+  ): Promise<{ articles: (ArticleWithDetails & { likedByCurrentUser?: boolean; bookmarkedByCurrentUser?: boolean })[]; total: number }> {
     let whereConditions = [];
 
     if (published !== undefined) {

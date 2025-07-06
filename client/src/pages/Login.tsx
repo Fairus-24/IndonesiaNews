@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
-import { FcGoogle } from "react-icons/fc";
 
 const loginSchema = z.object({
   email: z.string().email("Format email tidak valid"),
@@ -24,25 +23,6 @@ export default function Login() {
   const [, setLocation] = useLocation();
   const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-
-  // Check for token in URL (from Google OAuth callback)
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get("token");
-    const error = urlParams.get("error");
-    
-    if (token) {
-      // Store token and redirect
-      localStorage.setItem("token", token);
-      window.location.href = "/";
-    }
-    
-    if (error) {
-      // Handle error (you can show a toast here)
-      console.error("Google login failed:", error);
-    }
-  }, []);
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -74,22 +54,6 @@ export default function Login() {
       // Error handled in useAuth
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleGoogleLogin = async () => {
-    setIsGoogleLoading(true);
-    try {
-      const response = await fetch("/api/auth/google");
-      const data = await response.json();
-      if (data.url) {
-        // Redirect to Google OAuth
-        window.location.href = data.url;
-      }
-    } catch (error) {
-      console.error("Google login error:", error);
-    } finally {
-      setIsGoogleLoading(false);
     }
   };
 
@@ -180,26 +144,6 @@ export default function Login() {
               <span className="px-2 bg-white text-gray-500">Atau</span>
             </div>
           </div>
-
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full"
-            onClick={handleGoogleLogin}
-            disabled={isGoogleLoading}
-          >
-            {isGoogleLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Menghubungkan...
-              </>
-            ) : (
-              <>
-                <FcGoogle className="mr-2 h-5 w-5" />
-                Masuk dengan Google
-              </>
-            )}
-          </Button>
 
           <div className="text-center">
             <p className="text-sm text-gray-600">

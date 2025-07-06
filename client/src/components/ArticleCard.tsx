@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Heart, MessageCircle, Bookmark, User } from "lucide-react";
 import { Article } from "@/types";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
@@ -22,14 +22,33 @@ export default function ArticleCard({ article, showFullContent = false }: Articl
   const [isLiked, setIsLiked] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
 
+  // Tambahkan state lokal untuk like dan bookmark count
+  const [likeCount, setLikeCount] = useState(article._count.likes);
+  const [bookmarkCount, setBookmarkCount] = useState(article._count.bookmarks);
+
+  // Sync state lokal jika prop article berubah
+  useEffect(() => {
+    setLikeCount(article._count.likes);
+    setBookmarkCount(article._count.bookmarks);
+  }, [article._count.likes, article._count.bookmarks]);
+
+  // Sync state liked/bookmarked dari data user (jika user login)
+  useEffect(() => {
+    if (article && article.likedByCurrentUser !== undefined) {
+      setIsLiked(article.likedByCurrentUser);
+    }
+    if (article && article.bookmarkedByCurrentUser !== undefined) {
+      setIsBookmarked(article.bookmarkedByCurrentUser);
+    }
+  }, [article.likedByCurrentUser, article.bookmarkedByCurrentUser]);
+
   const likeMutation = useMutation({
     mutationFn: () => apiRequest("POST", `/api/articles/${article.id}/like`),
     onSuccess: async (response) => {
       const data = await response.json();
       setIsLiked(data.isLiked);
-      toast({
-        description: data.message,
-      });
+      setLikeCount((prev) => data.isLiked ? prev + 1 : prev - 1);
+      toast({ description: data.message });
       // Invalidate articles to refresh counts
       queryClient.invalidateQueries({ queryKey: ["/api/articles"] });
     },
@@ -47,9 +66,8 @@ export default function ArticleCard({ article, showFullContent = false }: Articl
     onSuccess: async (response) => {
       const data = await response.json();
       setIsBookmarked(data.isBookmarked);
-      toast({
-        description: data.message,
-      });
+      setBookmarkCount((prev) => data.isBookmarked ? prev + 1 : prev - 1);
+      toast({ description: data.message });
       // Invalidate articles and bookmarks to refresh counts
       queryClient.invalidateQueries({ queryKey: ["/api/articles"] });
       queryClient.invalidateQueries({ queryKey: ["/api/user/bookmarks"] });
@@ -152,7 +170,7 @@ export default function ArticleCard({ article, showFullContent = false }: Articl
               disabled={likeMutation.isPending}
             >
               <Heart className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
-              <span>{article._count.likes}</span>
+              <span>{likeCount}</span>
             </Button>
             
             <Link href={`/article/${article.slug}#comments`}>
@@ -170,7 +188,7 @@ export default function ArticleCard({ article, showFullContent = false }: Articl
               disabled={bookmarkMutation.isPending}
             >
               <Bookmark className={`h-4 w-4 ${isBookmarked ? 'fill-current' : ''}`} />
-              <span>{article._count.bookmarks}</span>
+              <span>{bookmarkCount}</span>
             </Button>
           </div>
 

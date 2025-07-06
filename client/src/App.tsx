@@ -6,7 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { SiteSettingsProvider } from "./lib/siteSettings";
+import { SiteSettingsProvider, useSiteSettings } from "./lib/siteSettings";
 import Home from "@/pages/Home";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
@@ -71,6 +71,49 @@ function Router() {
 }
 
 function App() {
+  const siteSettings = useSiteSettings();
+
+  useEffect(() => {
+    if (siteSettings.site_name) {
+      document.title = siteSettings.site_name;
+      document
+        .querySelector('meta[property="og:title"]')
+        ?.setAttribute("content", siteSettings.site_name);
+      document
+        .querySelector('meta[name="twitter:title"]')
+        ?.setAttribute("content", siteSettings.site_name);
+      document
+        .querySelector('meta[name="application-name"]')
+        ?.setAttribute("content", siteSettings.site_name);
+    }
+    if (siteSettings.site_icon) {
+      // Favicon
+      let favicon = document.querySelector('link[rel="icon"]');
+      if (!favicon) {
+        favicon = document.createElement('link');
+        favicon.setAttribute('rel', 'icon');
+        document.head.appendChild(favicon);
+      }
+      favicon.setAttribute('type', 'image/png');
+      favicon.setAttribute('href', siteSettings.site_icon);
+      // Meta og:image & twitter:image
+      let ogImg = document.querySelector('meta[property="og:image"]');
+      if (!ogImg) {
+        ogImg = document.createElement('meta');
+        ogImg.setAttribute('property', 'og:image');
+        document.head.appendChild(ogImg);
+      }
+      ogImg.setAttribute('content', siteSettings.site_icon);
+      let twImg = document.querySelector('meta[name="twitter:image"]');
+      if (!twImg) {
+        twImg = document.createElement('meta');
+        twImg.setAttribute('name', 'twitter:image');
+        document.head.appendChild(twImg);
+      }
+      twImg.setAttribute('content', siteSettings.site_icon);
+    }
+  }, [siteSettings.site_name, siteSettings.site_icon]);
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>

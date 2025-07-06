@@ -9,6 +9,7 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  loginWithToken: (token: string) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
@@ -99,6 +100,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Login dengan token (misal: dari Google OAuth)
+  const loginWithToken = async (token: string) => {
+    try {
+      setToken(token);
+      const response = await apiRequest("GET", "/api/auth/me");
+      const data = await response.json();
+      setUser(data.user);
+      setUserState(data.user);
+      toast({
+        title: "Login Berhasil",
+        description: `Selamat datang, ${data.user.fullName}!`,
+      });
+    } catch (error) {
+      removeToken();
+      const message = error instanceof Error ? error.message : "Login gagal";
+      toast({
+        title: "Login Gagal",
+        description: message,
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
   const logout = () => {
     removeToken();
     setUserState(null);
@@ -115,6 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         isLoading,
         login,
+        loginWithToken,
         register,
         logout,
         isAuthenticated: !!user,
