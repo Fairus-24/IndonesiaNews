@@ -94,7 +94,11 @@ export default function ArticleDetail() {
     onSuccess: async (response) => {
       const data = await response.json();
       setIsLiked(data.isLiked);
-      setLikeCount((prev) => data.isLiked ? prev + 1 : prev - 1);
+      if (typeof data.likeCount === "number") {
+        setLikeCount(data.likeCount);
+      } else {
+        setLikeCount((prev) => data.isLiked ? prev + 1 : prev - 1);
+      }
       toast({ description: data.message });
       queryClient.invalidateQueries({ queryKey: ["/api/articles", slug] });
     },
@@ -112,7 +116,11 @@ export default function ArticleDetail() {
     onSuccess: async (response) => {
       const data = await response.json();
       setIsBookmarked(data.isBookmarked);
-      setBookmarkCount((prev) => data.isBookmarked ? prev + 1 : prev - 1);
+      if (typeof data.bookmarkCount === "number") {
+        setBookmarkCount(data.bookmarkCount);
+      } else {
+        setBookmarkCount((prev) => data.isBookmarked ? prev + 1 : prev - 1);
+      }
       toast({ description: data.message });
       queryClient.invalidateQueries({ queryKey: ["/api/articles", slug] });
     },

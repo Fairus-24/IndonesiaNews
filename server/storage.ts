@@ -71,11 +71,11 @@ export interface IStorage {
   updateUser(id: number, updates: Partial<InsertUser>): Promise<User>;
 
   // Like methods
-  toggleLike(userId: number, articleId: number): Promise<boolean>;
+  toggleLike(userId: number, articleId: number): Promise<{ isLiked: boolean; likeCount: number }>;
   getUserLikes(userId: number): Promise<Like[]>;
 
   // Bookmark methods
-  toggleBookmark(userId: number, articleId: number): Promise<boolean>;
+  toggleBookmark(userId: number, articleId: number): Promise<{ isBookmarked: boolean; bookmarkCount: number }>;
   getUserBookmarks(
     userId: number,
     page: number,
@@ -225,24 +225,17 @@ export class DatabaseStorage implements IStorage {
           article: articles,
           author: users,
           category: categories,
-          likesCount: count(likes.id),
-          commentsCount: count(comments.id),
-          bookmarksCount: count(bookmarks.id),
+          likesCount: sql`(SELECT COUNT(*) FROM likes WHERE likes.articleId = articles.id)`.
+            as("likesCount"),
+          commentsCount: sql`(SELECT COUNT(*) FROM comments WHERE comments.articleId = articles.id AND comments.isApproved = true)`.
+            as("commentsCount"),
+          bookmarksCount: sql`(SELECT COUNT(*) FROM bookmarks WHERE bookmarks.articleId = articles.id)`.
+            as("bookmarksCount"),
         })
         .from(articles)
         .leftJoin(users, eq(articles.authorId, users.id))
         .leftJoin(categories, eq(articles.categoryId, categories.id))
-        .leftJoin(likes, eq(articles.id, likes.articleId))
-        .leftJoin(
-          comments,
-          and(
-            eq(articles.id, comments.articleId),
-            eq(comments.isApproved, true)
-          )
-        )
-        .leftJoin(bookmarks, eq(articles.id, bookmarks.articleId))
         .where(whereClause)
-        .groupBy(articles.id, users.id, categories.id)
         .orderBy(desc(articles.createdAt))
         .limit(limit)
         .offset((page - 1) * limit),
@@ -275,21 +268,17 @@ export class DatabaseStorage implements IStorage {
         article: articles,
         author: users,
         category: categories,
-        likesCount: count(likes.id),
-        commentsCount: count(comments.id),
-        bookmarksCount: count(bookmarks.id),
+        likesCount: sql`(SELECT COUNT(*) FROM likes WHERE likes.articleId = articles.id)`.
+          as("likesCount"),
+        commentsCount: sql`(SELECT COUNT(*) FROM comments WHERE comments.articleId = articles.id AND comments.isApproved = true)`.
+          as("commentsCount"),
+        bookmarksCount: sql`(SELECT COUNT(*) FROM bookmarks WHERE bookmarks.articleId = articles.id)`.
+          as("bookmarksCount"),
       })
       .from(articles)
       .leftJoin(users, eq(articles.authorId, users.id))
       .leftJoin(categories, eq(articles.categoryId, categories.id))
-      .leftJoin(likes, eq(articles.id, likes.articleId))
-      .leftJoin(
-        comments,
-        and(eq(articles.id, comments.articleId), eq(comments.isApproved, true))
-      )
-      .leftJoin(bookmarks, eq(articles.id, bookmarks.articleId))
-      .where(eq(articles.id, id))
-      .groupBy(articles.id, users.id, categories.id);
+      .where(eq(articles.id, id));
 
     if (result.length === 0) return undefined;
 
@@ -516,26 +505,33 @@ export class DatabaseStorage implements IStorage {
     }));
   }
 
-  async toggleLike(userId: number, articleId: number): Promise<boolean> {
+  async toggleLike(userId: number, articleId: number): Promise<{ isLiked: boolean; likeCount: number }> {
     const [existingLike] = await db
       .select()
       .from(likes)
       .where(and(eq(likes.userId, userId), eq(likes.articleId, articleId)));
 
+    let isLiked: boolean;
     if (existingLike) {
       await db.delete(likes).where(eq(likes.id, existingLike.id));
-      return false;
+      isLiked = false;
     } else {
       await db.insert(likes).values({ userId, articleId });
-      return true;
+      isLiked = true;
     }
+    // Hitung jumlah like terbaru
+    const [{ count: likeCount }] = await db
+      .select({ count: count() })
+      .from(likes)
+      .where(eq(likes.articleId, articleId));
+    return { isLiked, likeCount };
   }
 
   async getUserLikes(userId: number): Promise<Like[]> {
     return await db.select().from(likes).where(eq(likes.userId, userId));
   }
 
-  async toggleBookmark(userId: number, articleId: number): Promise<boolean> {
+  async toggleBookmark(userId: number, articleId: number): Promise<{ isBookmarked: boolean; bookmarkCount: number }> {
     const [existingBookmark] = await db
       .select()
       .from(bookmarks)
@@ -543,13 +539,20 @@ export class DatabaseStorage implements IStorage {
         and(eq(bookmarks.userId, userId), eq(bookmarks.articleId, articleId))
       );
 
+    let isBookmarked: boolean;
     if (existingBookmark) {
       await db.delete(bookmarks).where(eq(bookmarks.id, existingBookmark.id));
-      return false;
+      isBookmarked = false;
     } else {
       await db.insert(bookmarks).values({ userId, articleId });
-      return true;
+      isBookmarked = true;
     }
+    // Hitung jumlah bookmark terbaru
+    const [{ count: bookmarkCount }] = await db
+      .select({ count: count() })
+      .from(bookmarks)
+      .where(eq(bookmarks.articleId, articleId));
+    return { isBookmarked, bookmarkCount };
   }
 
   async getUserBookmarks(
@@ -563,24 +566,18 @@ export class DatabaseStorage implements IStorage {
           article: articles,
           author: users,
           category: categories,
-          likesCount: count(likes.id),
-          commentsCount: count(comments.id),
-          bookmarksCount: count(bookmarks.id),
+          likesCount: sql`(SELECT COUNT(*) FROM likes WHERE likes.articleId = articles.id)`.
+            as("likesCount"),
+          commentsCount: sql`(SELECT COUNT(*) FROM comments WHERE comments.articleId = articles.id AND comments.isApproved = true)`.
+            as("commentsCount"),
+          bookmarksCount: sql`(SELECT COUNT(*) FROM bookmarks WHERE bookmarks.articleId = articles.id)`.
+            as("bookmarksCount"),
         })
         .from(bookmarks)
         .leftJoin(articles, eq(bookmarks.articleId, articles.id))
         .leftJoin(users, eq(articles.authorId, users.id))
         .leftJoin(categories, eq(articles.categoryId, categories.id))
-        .leftJoin(likes, eq(articles.id, likes.articleId))
-        .leftJoin(
-          comments,
-          and(
-            eq(articles.id, comments.articleId),
-            eq(comments.isApproved, true)
-          )
-        )
         .where(eq(bookmarks.userId, userId))
-        .groupBy(articles.id, users.id, categories.id, bookmarks.id)
         .orderBy(desc(bookmarks.createdAt))
         .limit(limit)
         .offset((page - 1) * limit),

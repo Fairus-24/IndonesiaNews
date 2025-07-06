@@ -495,9 +495,10 @@ app.get("/api/articles/:slug", async (req, res) => {
     async (req: AuthRequest, res) => {
       try {
         const articleId = parseInt(req.params.articleId);
-        const isLiked = await storage.toggleLike(req.user!.id, articleId);
+        const { isLiked, likeCount } = await storage.toggleLike(req.user!.id, articleId);
         res.json({
           isLiked,
+          likeCount,
           message: isLiked ? "Artikel disukai" : "Like dibatalkan",
         });
       } catch (error) {
@@ -513,12 +514,13 @@ app.get("/api/articles/:slug", async (req, res) => {
     async (req: AuthRequest, res) => {
       try {
         const articleId = parseInt(req.params.articleId);
-        const isBookmarked = await storage.toggleBookmark(
+        const { isBookmarked, bookmarkCount } = await storage.toggleBookmark(
           req.user!.id,
           articleId
         );
         res.json({
           isBookmarked,
+          bookmarkCount,
           message: isBookmarked ? "Artikel dibookmark" : "Bookmark dibatalkan",
         });
       } catch (error) {

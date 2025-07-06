@@ -47,9 +47,12 @@ export default function ArticleCard({ article, showFullContent = false }: Articl
     onSuccess: async (response) => {
       const data = await response.json();
       setIsLiked(data.isLiked);
-      setLikeCount((prev) => data.isLiked ? prev + 1 : prev - 1);
+      if (typeof data.likeCount === "number") {
+        setLikeCount(data.likeCount);
+      } else {
+        setLikeCount((prev) => data.isLiked ? prev + 1 : prev - 1);
+      }
       toast({ description: data.message });
-      // Invalidate articles to refresh counts
       queryClient.invalidateQueries({ queryKey: ["/api/articles"] });
     },
     onError: () => {
@@ -66,9 +69,12 @@ export default function ArticleCard({ article, showFullContent = false }: Articl
     onSuccess: async (response) => {
       const data = await response.json();
       setIsBookmarked(data.isBookmarked);
-      setBookmarkCount((prev) => data.isBookmarked ? prev + 1 : prev - 1);
+      if (typeof data.bookmarkCount === "number") {
+        setBookmarkCount(data.bookmarkCount);
+      } else {
+        setBookmarkCount((prev) => data.isBookmarked ? prev + 1 : prev - 1);
+      }
       toast({ description: data.message });
-      // Invalidate articles and bookmarks to refresh counts
       queryClient.invalidateQueries({ queryKey: ["/api/articles"] });
       queryClient.invalidateQueries({ queryKey: ["/api/user/bookmarks"] });
     },
