@@ -31,6 +31,9 @@ export default defineConfig({
   server: {
     host: "0.0.0.0",
     port: 5000,
+    allowedHosts: [
+    "news.fairus.202.154.58.51.sslip.io"
+    ],
     fs: {
       strict: true,
       deny: ["**/.*"],

@@ -247,7 +247,7 @@ app.get("/api/articles", async (req, res) => {
       }
       res.json(result);
     } catch (error) {
-      res.status(500).json({ message: "Gagal mengambil artikel" });
+      res.status(500).json({ message: "Gagal mengambil artikel", error: String(error) });
     }
   });
 
@@ -282,7 +282,7 @@ app.get("/api/articles/:slug", async (req, res) => {
     }
     res.json({ ...article, likedByCurrentUser, bookmarkedByCurrentUser });
   } catch (error) {
-    res.status(500).json({ message: "Gagal mengambil artikel" });
+    res.status(500).json({ message: "Gagal mengambil artikel", error: String(error) });
   }
 });
 
